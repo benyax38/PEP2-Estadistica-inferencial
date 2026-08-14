@@ -1,0 +1,16 @@
+# Definir valores de los predictores para vehículos no incluidos
+# en el conjunto mtcars.
+modelos <- c("Chevrolet Vega", "Ford Pinto", "AMC Pacer",
+            "Plymouth Valiant Duster", "Chevrolet Impala Caprice")
+disp <- c(140, 98, 232, 360, 350)
+wt <- c(2.2, 2.0, 3.0, 3.5, 2.5)
+datos_nuevos <- data.frame(disp, wt)
+rownames(datos_nuevos) <- modelos
+
+# Usar el modelo para predecir el rendimiento de otros modelos
+hp_est <- predict(modelo, newdata = datos_nuevos)
+datos_nuevos <- cbind(datos_nuevos, hp_est)
+
+# Mostrar los resultados
+cat("Predicciones:\n")
+print(datos_nuevos)

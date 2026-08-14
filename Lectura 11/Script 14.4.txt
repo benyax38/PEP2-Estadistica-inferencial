@@ -1,0 +1,26 @@
+library(dummy)
+
+# Crear la matriz de datos del ejemplo
+persona <- 1:9
+sexo <- c("F", "F", "M", "M", "M", "M", "F", "M", "F")
+tipo <- c("B", "D", "A", "B", "A", "C", "D", "D", "D")
+valor <- c(1.68, 2.79, 1.92, 2.26, 2.1, 2.63, 2.19, 3.62, 2.76)
+datos <- data.frame(persona, sexo, tipo, valor)
+
+# Crear las variables indicadoras
+datos_indicadoras <- dummy(datos)
+datos_indicadoras[["sexo_F"]] <- NULL
+datos_indicadoras[["tipo_A"]] <- NULL
+datos_indicadoras[["valor"]] <- datos[["valor"]]
+
+# Crear y mostrar el modelo de RLM usando variables indicadoras
+cat("Modelo de RLM con variables indicadoras explícitas\n")
+cat("--------------------------------------------------")
+modelo <- lm(valor ~ sexo_M + tipo_B + tipo_C + tipo_D, datos_indicadoras)
+print(modelo)
+
+# Crear y mostrar el modelo de RLM dejando el trabajo a la función lm()
+cat("Modelo de RLM con variables indicadoras implícitas\n")
+cat("--------------------------------------------------")
+modelo_directo <- lm(valor ~ sexo + tipo, datos)
+print(modelo_directo)

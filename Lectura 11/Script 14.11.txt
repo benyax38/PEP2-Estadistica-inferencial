@@ -1,0 +1,23 @@
+# Ajustar y mostrar el modelo usando validación cruzada
+# dejando uno fuera sin la variable "carb".
+set.seed(111)
+fmla <- formula("hp ~ mpg + cyl + disp + drat + qsec + vs + am + gear")
+entrenamiento <- train(fmla, data = datos, method = "lm",
+                        trControl = trainControl(method = "LOOCV"))
+modelo <- entrenamiento[["finalModel"]]
+
+# Mostrar la fórmula y las predicciones del modelo modificado
+cat("\n\nModelo con un predictor menos:\n")
+cat("----------------------------------\n\n")
+print(fmla)
+cat("\n")
+
+cat("Predicciones en cada pliegue:\n")
+print(entrenamiento[["pred"]])
+
+# Mostrar el resultado estimado para el modelo
+cat("\nError estimado para el modelo:\n")
+print(entrenamiento[["results"]])
+
+# Reestablecer opción para warnings
+options(warn = opt[[1]])

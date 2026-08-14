@@ -1,0 +1,47 @@
+library(dplyr)
+library(leaps)
+
+# Cargar y filtrar los datos
+datos <- mtcars |> filter(wt > 2 & wt < 5) |>
+    mutate(across(c("cyl", "vs", "am", "gear", "carb"), as.factor))
+
+# Evaluar todos las combinaciones
+combinaciones <- regsubsets(hp ~ ., data = datos, nbest = 1, nvmax = 16,
+                          method = "exhaustive")
+
+# Graficar los resultados
+plot(combinaciones)
+
+# Extraer los mejores subconjuntos
+resumen_combinaciones <- summary(combinaciones)
+i_bic_minimo <- which.min(resumen_combinaciones[["bic"]])
+i_r2a_maximo <- which.max(resumen_combinaciones[["adjr2"]])
+
+mejor_comb_bic <- resumen_combinaciones[["which"]][i_bic_minimo, ]
+mejor_comb_r2a <- resumen_combinaciones[["which"]][i_r2a_maximo, ]
+
+# Extraer las variables seleccionadas
+comb_mejor_bic <- names(mejor_comb_bic[mejor_comb_bic == TRUE])
+comb_mejor_r2a <- names(mejor_comb_r2a[mejor_comb_r2a == TRUE])
+
+# Eliminar variables indicadoras
+nombres_mejor_bic <- unique(gsub("^(.*)\\d$", "\\1", comb_mejor_bic))
+nombres_mejor_r2a <- unique(gsub("^(.*)\\d$", "\\1", comb_mejor_r2a))
+
+# Obtener las fórmulas
+pred_mejor_bic <- paste(nombres_mejor_bic[-1], collapse = " + ")
+pred_mejor_r2a <- paste(nombres_mejor_r2a[-1], collapse = " + ")
+
+fmla_mejor_bic <- as.formula(paste("hp", pred_mejor_bic, sep = " ~ "))
+fmla_mejor_r2a <- as.formula(paste("hp", pred_mejor_r2a, sep = " ~ "))
+
+# Construir y mostrar los mejores modelos
+modelo_mejor_bic <- lm(fmla_mejor_bic, data = datos)
+modelo_mejor_r2a <- lm(fmla_mejor_r2a, data = datos)
+
+cat("Modelo que minimiza el BIC:\n")
+cat("---------------------------\n")
+print(modelo_mejor_bic)
+cat("\nModelo que maximiza el coeficiente de determinación ajustado:\n")
+cat("-------------------------------------------------------------\n")
+print(modelo_mejor_r2a)

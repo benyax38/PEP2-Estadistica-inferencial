@@ -1,0 +1,34 @@
+Cap 14: Regresión lineal múltiple
+14.1 Modelo de RLM
+ - Script 14.1: Regresión lineal para predecir la potencia del motor (en vehículos entre 2 y 5 mil libras) 
+                a partir de dos predictores: el volumen útil de sus cilindros y el peso del vehículo
+ - Script 14.2: (continuación del script 14.1) gráfico 3D del plano de regresión obtenido para el ejemplo
+ - Script 14.3: (continuación del script 14.2) uso del modelo de RLM para predecir la potencia de otros 
+                vehículos
+
+14.2 Predictores categóricos no dicotómicos
+ - Script 14.4: Creación de variables artificiales para variables categóricas
+
+14.3 Bondad de ajuste de un modelo de RLM
+ - Script 14.5: Comparación de los dos modelos lineales del ejemplo
+
+14.4 Selección de predictores
+ 14.4.1 Regresión jerárquica
+  - Script 14.6: Aplicación de regresión jerárquica para construir un modelo de RLM para predecir la potencia 
+                 del motor en automóviles que pesan entre 2 y 5 mil libras construidos en los años 70
+ 14.4.2 Regresión paso a paso
+  - Script 14.7: Regresión paso a paso para construir modelos de RLM para el ejemplo con mtcars
+  - Script 14.8: Regresión paso a paso (escalonada) para seleccionar los predictores a incluir en una RLM 
+                 para predecir la potencia del motor en automóviles que pesan entre 2 y 5 mil libras 
+                 construidos en los años 70
+ 14.4.3 Búsqueda exhaustiva
+  - Script 14.9: Regresión utilizando el método de todos los subconjuntos para construir un modelo de RLM 
+                 para el ejemplo con el conjunto de datos mtcars
+
+14.5 Confiabilidad de un modelo de RLM
+14.6 Calidad predictiva de un modelo de RLM
+ - Script 14.10: Validación cruzada dejando uno fuera para construir el modelo de RLM de la figura 14.12 
+                 (selección con el método de todos los subconjuntos)
+ - Script 14.11: (continuación del script 14.10) validación cruzada dejando uno fuera para construir el 
+                 modelo de RLM de la figura 14.15 con un predictor menos (carb) (validación cruzada 
+                 dejando uno fuera)

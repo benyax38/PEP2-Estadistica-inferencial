@@ -1,0 +1,11 @@
+# Graficar el modelo ajustado, diferenciando valores sobre y bajo el plano
+i_color <- 1 + (resid(modelo) > 0)
+g <- scatterplot3d(
+    datos[["disp"]], datos[["wt"]], datos[["hp"]], type = "p", angle = 50,
+    pch = 16, color = c("steelblue1", "steelblue4")[i_color],
+    xlab = bquote("Volumen útil de los cilindros" ~ group("[", "in"^3, "]")),
+    ylab = "Peso [lb x 1000]\n\n\n",
+    zlab = "Potencia [hp]",
+    mar = c(3, 3, 1, 0) + 0.1
+)
+g$plane3d(modelo, draw_lines = TRUE, lty = "dotted")
