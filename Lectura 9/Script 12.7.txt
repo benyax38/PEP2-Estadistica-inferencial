@@ -1,0 +1,30 @@
+# Desplazamos los valores de la muestra de hombres para reflejar la hipótesis nula
+valor_nulo <- -0.5
+desplazamiento <- valor_nulo - dif_obs
+datos_largos_HO <- datos_largos |>
+    mutate(Nota = if_else(Muestra == "hombres", Nota + desplazamiento, Nota))
+
+# Generamos las mismas remuestras con los datos que cumplen la hipótesis nula
+set.seed(432)
+remuestras_HO <- bootstraps(datos_largos_HO, times = R, strata = Muestra, apparent = TRUE)
+
+# Solo por esta vez, vamos a verificar que se han usado las mismas observaciones en ambos
+# conjuntos de remuestras (usan los mismos índices)
+
+# Primero, obtenemos los índices que usan y los ordenamos como matrices
+indices_orig <- remuestras |> pull(splits) |> map(~ .x[["in_id"]]) |>
+    set_names(remuestras |> pull(id)) |> as_tibble() |> t()
+indices_desp <- remuestras_HO |> pull(splits) |> map(~ .x[["in_id"]]) |>
+    set_names(remuestras_HO |> pull(id)) |> as_tibble() |> t()
+
+# Ahora mostramos las primeras filas de cada grupo de remuestras y el resultado final
+# de la comparación de todas las filas de las matrices.
+msg <- "Comparación de los índices usados en las remuestras"
+cat("\n", msg, ":\n", sep = "")
+cat(rep("-", nchar(msg)), "\n", sep = "")
+walk(1:5, ~ {
+    cat(sprintf("# i = %d\n", .x));
+    cat("Orig.:", paste(sprintf("%02d", indices_orig[.x, ]), ""), "\n");
+    cat("HO   :", paste(sprintf("%02d", indices_desp[.x, ]), ""), "\n");
+})
+cat("\n¿Todas las remuestras son iguales?:", all(indices_orig == indices_desp))

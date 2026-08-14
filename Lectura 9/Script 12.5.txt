@@ -1,0 +1,29 @@
+# Simplificar la estructura de la distribución bootstrap a una tabla para su análisis
+dist_bt_tbl <- dist_bt |> select(-splits) |> unnest(cols = stats)
+
+# Obtener y mostrar las estadísticas de la distribución bootstrap
+dif_obs <- dist_bt_tbl |> filter(id == "Apparent") |> pull(estimate)
+dist_bt_stats <- dist_bt_tbl |> filter(id != "Apparent") |>
+    summarise(Dif_obs = dif_obs, Dif_bt = mean(estimate), Dif_bt_es = sd(estimate)) |>
+    mutate(Sesgo = Dif_bt - Dif_obs, .before = 3) |> map_df(~ num(.x, digits = 4))
+
+msg <- "Estadísticas de la distribución bootstrap - diferencia de dos medias"
+cat("\n\n", msg, ":\n", sep = "")
+cat(rep("-", nchar(msg)), "\n", sep = "")
+print(dist_bt_stats)
+
+# Crear y mostrar los gráficos para la distribución bootstrap
+dist_bt_his <- dist_bt_tbl |> filter(id != "Apparent") |>
+    gghistogram(x = "estimate", bins = nclass.scott(dist_bt_tbl[["estimate"]]),
+                color = "steelblue", fill = "steelblue",
+                xlab = "Diferencia de Medias", ylab = "Frecuencia") +
+    geom_vline(xintercept = dif_obs, color = "steelblue4",
+               linetype = "dashed", linewidth = 1.2)
+dist_bt_qq <- dist_bt_tbl |> filter(id != "Apparent") |>
+    ggqqplot(x = "estimate", color = "steelblue", fill = "steelblue",
+             xlab = "Cuantiles teóricos (Normal)", ylab = "Cuantiles muéstrales")
+titulo <- text_grob("Distribución bootstrap de la diferencia de dos medias",
+                    size = 12, face = "bold")
+dist_bt_pl <- ggarrange(dist_bt_his, dist_bt_qq, ncol = 2, labels = "AUTO") |>
+    annotate_figure(top = titulo)
+print(dist_bt_pl)

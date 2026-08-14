@@ -1,0 +1,35 @@
+library(car)
+library(dplyr)
+library(ggpubr)
+
+# Cargar y filtrar los datos
+datos <- mtcars |> filter(wt > 2 & wt < 5)
+
+# Ajustar modelo con R
+modelo <- lm(hp ~ disp, data = datos)
+
+# Desplegar gráficos de residuos y mostrar pruebas de curvatura
+cat("Pruebas de curvatura:\n")
+residualPlots(modelo, type = "rstandard",
+              id = list(method = "r", n = 3, cex = 0.7, location = "lr"),
+              col = "steelblue2", pch = 20, col.quad = "steelblue4")
+
+# Verificar que no hay autocorrelación entre residuos
+set.seed(19)
+db <- durbinWatsonTest(modelo)
+cat("\nPrueba de independencia:\n")
+print(db)
+
+# Desplegar gráficos marginales
+marginalModelPlots(modelo, sd = TRUE,
+                   id = list(method = "r", n = 3, cex = 0.7, location = "lr"),
+                   col = "steelblue", pch = 20, col.line = c("steelblue", "red"))
+
+# Prueba de la varianza del error no constante
+cat("\nPrueba de homocedasticidad:\n")
+print(ncvTest(modelo))
+
+# Desplegar gráficos de influencia
+casos_influyentes <- influencePlot(modelo, id = list(cex = 0.7))
+cat("\nCasos que podrían ser influyentes:\n")
+print(round(casos_influyentes, 3))

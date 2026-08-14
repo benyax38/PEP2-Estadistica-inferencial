@@ -1,0 +1,17 @@
+library(dplyr)
+
+# Selección aleatoria de n observaciones desde la muestra combinada
+set.seed(semilla)
+dataset |> select(factor, variable_dependiente) |> slice_sample(n = n)
+
+# Selección aleatoria de n observaciones desde cada grupo (nivel del factor)
+set.seed(semilla)
+dataset |> select(factor, variable_dependiente) |> group_by(factor) |> slice_sample(n = n)
+
+------------------------------------------------------------------------------------------
+
+library(dplyr)
+
+# Selección aleatoria de n observaciones
+set.seed(semilla)
+dataset |> filter(<condición>) |> select(variable_dependiente) |> slice_sample(n = n)

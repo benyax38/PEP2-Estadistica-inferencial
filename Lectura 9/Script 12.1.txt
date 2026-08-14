@@ -1,0 +1,30 @@
+library(boot)
+library(broom)
+library(dplyr)
+library(purrr)
+library(tibble)
+
+# Crear muestra inicial
+muestra <- c(79, 75, 84, 75, 94, 82, 76, 90, 79, 88)
+
+# Establecer cantidad de remuestreos y nivel de significación
+R <- 1999
+alfa <- 0.01
+
+# Función para calcular el estadístico: media de la remuestra
+media <- function(valores, i) {
+    mean(valores[i])
+}
+
+# Construir la distribución bootstrap usando el paquete boot
+set.seed(432)
+dist_bt <- boot(muestra, statistic = media, R = R)
+
+# Mostrar y graficar la distribución bootstrap
+print(dist_bt)
+plot(dist_bt)
+
+# Construir y mostrar los intervalos de confianza
+ic_bt <- boot.ci(dist_bt, conf = 1 - alfa, type = c("norm", "perc", "bca"))
+cat("\n\n")
+print(ic_bt)

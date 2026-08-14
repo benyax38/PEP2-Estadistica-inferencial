@@ -1,0 +1,41 @@
+# Función que devuelve las medias de las diferencias de los tiempos de ejecución
+# entre pares de algoritmos según una remuestra.
+medias_dif_pares <- function(remuestra, ...) {
+    dl <- analysis(remuestra)
+    dl |> get_comparisons(Algoritmo) |> unname() |>
+        map(~ {nombre <- paste(.x[1], .x[2], sep = " - ")
+            dl |>
+                reframe(difs = Tiempo[Algoritmo == .x[1]] - Tiempo[Algoritmo == .x[2]]) |>
+                summarise(!!nombre := mean(difs))
+        }) |> list_cbind()
+}
+
+# Obtener la distribución permutada de las medias de las diferencias de tiempo de
+# ejecución entre pares de algoritmos.
+posthoc_perm <- remuestras |> mutate(medias_dif = map(splits, medias_dif_pares)) |>
+    unnest(medias_dif)
+
+# Obtener las medias de las diferencias de tiempo de ejecución entre pares de algoritmos
+# observadas en las muestras originales.
+posthoc_medias_obs <- posthoc_perm |> filter(id == "Apparent") |> select(-splits, -id)
+
+# Calcular el valor p para cada caso
+n_extremos <- posthoc_perm |>
+    summarise(across(.cols = where(is.numeric),
+                  .fns = ~ sum(abs(.x) >= abs(posthoc_medias_obs[[cur_column()]]))))
+p_valores <- n_extremos / (R + 1)
+
+# Producir una tabla con las medias de las diferencias entre cada par de algoritmos
+# observadas en las muestras originales.
+posthoc_tbl <- bind_rows(posthoc_medias_obs, p_valores, .id = "est") |>
+    mutate(est = c("Media dif. obs.", "p_perm")) |>
+    pivot_longer(-est, names_to = "Par de algoritmos", values_to = "Valor") |>
+    pivot_wider(names_from = est, values_from = Valor) |>
+    adjust_pvalue(p.col = "p_perm", output.col = "p_perm_adj", method = "BH") |>
+    mutate(across(where(is.numeric), ~ num(., digits = 3)))
+
+# Mostrar los resultados del análisis post-hoc
+msg <- "Resultados del análisis post-hoc"
+cat(msg, ":\n", sep = "")
+cat(rep("-", nchar(msg)), "\n", sep = "")
+print(posthoc_tbl)

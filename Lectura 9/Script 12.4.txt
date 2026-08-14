@@ -1,0 +1,15 @@
+# Crear las remuestras, incluyendo la muestra original
+R <- 1999
+set.seed(432)
+remuestras <- bootstraps(datos_largos, times = R, strata = Muestra, apparent = TRUE)
+
+# Función que devuelve los estadísticos de interés para la diferencia
+# de las medias de dos muestras independientes en una remuestra.
+dif_dos_medias <- function(remuestra, ...) {
+    analysis(remuestra) |> group_by(Muestra) |>
+        summarise(n = n(), m = mean(Nota), v = var(Nota)) |>
+        summarise(term = "Dif. 2 medias", estimate = m[1] - m[2], std.error = sqrt(sum(v / n)))
+}
+
+# Obtener la distribución bootstrap de la diferencia de las medias
+dist_bt <- remuestras |> mutate(stats = map(splits, dif_dos_medias))

@@ -1,0 +1,48 @@
+library(ggpubr)
+library(WRS2)
+
+# Construir las estructuras con los datos
+A <- c(25.1, 25.2, 25.3, 25.3, 25.4, 25.4, 25.5, 25.5, 25.6, 25.8, 25.8, 25.9, 25.9, 26.0,
+    26.0, 26.2, 26.2, 26.2, 26.3, 26.4, 26.5, 26.5, 26.6, 26.7, 26.7, 26.9, 26.9, 27.0,
+    27.1, 27.3, 27.8, 28.4, 28.5, 29.0, 29.8, 30.2, 31.8, 31.9, 33.3, 33.7)
+
+B <- c(24.1, 24.4, 24.4, 24.5, 24.7, 24.8, 24.8, 25.1, 25.2, 25.2, 25.2, 25.3, 25.4, 25.7,
+    25.7, 26.3, 26.3, 26.4, 26.5, 27.2, 27.7, 28.3, 28.4, 28.4, 28.6, 28.7, 29.6, 29.9,
+    30.1, 30.5)
+
+C <- c(24.5, 24.5, 24.5, 24.6, 24.6, 24.6, 24.6, 24.6, 24.6, 24.6, 24.7, 24.7,
+    24.7, 24.7, 24.8, 25.0, 25.0, 25.0, 25.2, 25.2, 25.2, 25.2, 25.5, 25.7, 25.9, 26.2,
+    26.5, 26.5, 26.7, 27.0, 29.2, 29.9, 30.1)
+
+Tiempo <- c(A, B, C)
+Algoritmo <- c(rep("A", length(A)), rep("B", length(B)), rep("C", length(C)))
+Algoritmo <- factor(Algoritmo)
+datos <- data.frame(Tiempo, Algoritmo)
+
+# Obtener gráficos Q-Q de las muestras
+qq <- ggqqplot(datos, x = "Tiempo", facet.by = "Algoritmo",
+               color = "Algoritmo", palette = c("steelblue", "steelblue1", "steelblue4"),
+               xlab = "Cuantil teórico", ylab = "Tiempos de ejecución [ms]")
+qq <- qq + theme(legend.position = "none")
+print(qq)
+
+# Fijar nivel de significación, el nivel de poda y el número de repeticiones
+alfa <- 0.05
+gamma <- 0.2
+R <- 999
+
+# Comparar los diferentes algoritmos usando medias truncadas
+set.seed(666)
+una_via <- t1way(Tiempo ~ Algoritmo, data = datos, tr = gamma, alpha = alfa, nboot = R)
+
+cat("Análisis de una vía para muestras independientes (asintótico)\n")
+cat("------------------------------------------------------------\n")
+print(una_via)
+
+if(una_via[["p.value"]] < alfa) {
+    una_via_ph <- lincon(Tiempo ~ Algoritmo, data = datos, tr = gamma, alpha = alfa)
+
+    cat("Análisis post-hoc para muestras independientes (asintótico)\n")
+    cat("-----------------------------------------------------------\n")
+    print(una_via_ph)
+}

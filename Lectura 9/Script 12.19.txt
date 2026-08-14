@@ -1,0 +1,5 @@
+# Aplicar y mostrar la prueba de Yuen para muestras apareadas
+prueba <- yuend(x = a, y = b, tr = gamma)
+cat("Prueba de Yuen para dos muestras apareadas\n")
+cat("---------------------------------------------\n")
+print(prueba)

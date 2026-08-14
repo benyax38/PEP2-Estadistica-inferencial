@@ -1,0 +1,33 @@
+# Obtener estadísticas de la distribución bootstrap usando tidyverse
+dist_bt_stats <- tidy(dist_bt) |>
+  rename(Media_obs = statistic, Sesgo = bias, Error_est = std.error) |>
+  mutate(Media_bt = Media_obs + Sesgo) |>
+  mutate(across(where(is.numeric), ~ num(.x, digits = 4)))
+
+# Obtener intervalos de confianza usando tidyverse
+Tipo_IC <- c("norm", "perc", "bca")
+ic_bt <- map_df(Tipo_IC, ~ tidy(dist_bt, conf.int = TRUE, conf.level = 1 - alfa,
+                                conf.method = .x)) |>
+  select(conf.low, conf.high) |> rename(Lim_inf = conf.low, Lim_sup = conf.high) |>
+  mutate(across(where(is.numeric), ~ num(., digits = 4))) |>
+  add_column(Tipo_IC, .before = 1)
+
+# Mostrar estadísticas e intervalos de confianza con un look más moderno
+msg <- "Estadísticas bootstrap - una muestra"
+cat("\n\n", msg, ":\n", sep = "")
+cat(rep("-", nchar(msg)), "\n", sep = "")
+print(dist_bt_stats)
+
+msg <- "Intervalos de confianza para la media poblacional"
+cat("\n", msg, ":\n", sep = "")
+cat(rep("-", nchar(msg)), "\n", sep = "")
+print(ic_bt)
+
+# Desplazar la distribución bootstrap para que se centre en el valor nulo
+valor_nulo <- 75
+desplazamiento <- dist_bt_stats["Media_bt"] - valor_nulo
+dist_nula_bt <- dist_bt[["t"]] - desplazamiento
+
+# Determinar y mostrar el valor p bootstrap
+p <- (sum(dist_nula_bt > dist_bt_stats["Media_obs"]) + 1) / (R + 1)
+cat("\nValor p*:", sprintf("%0.3f", p), "\n")

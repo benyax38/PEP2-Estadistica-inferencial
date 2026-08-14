@@ -1,0 +1,19 @@
+# Comparar los algoritmos usando diferencias truncadas y bootstrapping
+nboot <- 999
+set.seed(666)
+mr_bt <- rmanovab(y = datos[["Tiempo"]], groups = datos[["Algoritmo"]],
+                blocks = datos[["Instancia"]], tr = gamma, nboot = nboot)
+
+cat("Análisis de una vía para medidas repetidas (bootstrapped)\n")
+cat("-----------------------------------------------------------\n")
+print(mr_bt)
+
+if(mr_bt[["test"]] > mr_bt[["crit"]]) {
+    set.seed(666)
+    mr_bt_ph <- pairdepb(y = datos[["Tiempo"]], groups = datos[["Algoritmo"]],
+                        blocks = datos[["Instancia"]], tr = gamma, nboot = nboot)
+
+    cat("Análisis post-hoc para medidas repetidas (bootstrapped)\n")
+    cat("---------------------------------------------------------\n")
+    print(mr_bt_ph)
+}

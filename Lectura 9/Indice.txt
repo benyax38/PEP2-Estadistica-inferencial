@@ -1,0 +1,52 @@
+Cap 12: Alternativas más recientes para analizar datos problemáticos
+12.1 Remuestreo
+ 12.1.1 Bootstrapping
+ 12.1.2 Bootstrapping para una muestra
+  - Script 12.1: Obtención de intervalos de confianza para la media poblacional mediante bootstrapping
+  - Script 12.2: (continuación del script 12.1) obtención de estadísticas, intervalos de confianza y valor 
+                 p basados en bootstrapping usando funciones tidy
+ 12.1.3 Bootstrapping para dos muestras independientes
+  - Script 12.3: Revisión de la condición de normalidad de dos muestras independientes
+  - Script 12.4: (continuación del script 12.3) obtención de una distribución bootstrap para la diferencia 
+                 de dos medias del ejemplo
+  - Script 12.5: (continuación del script 12.4) estadísticas y gráficos para la distribución bootstrap de 
+                 la diferencia de dos medias obtenida para el ejemplo
+  - Script 12.6: (continuación del script 12.5) obtención de intervalos de confianza para la distribución
+                 bootstrap de la diferencia de dos medias
+  - Script 12.7: (continuación del script 12.6) desplazamiento de una de las muestras del ejemplo para 
+                 representar la situación bajo la hipótesis nula
+  - Script 12.8: (continuación del script 12.7) gráfica del contraste de las hipótesis del ejemplo
+ 12.1.4 Bootstrapping para dos muestras apareadas
+  - Script 12.9: Bootstrapping para inferir acerca de la media de las diferencias de dos muestras apareadas
+ 12.1.5 Pruebas de permutación
+ 12.1.6 Prueba de permutaciones para dos muestras independientes
+  - Script 12.10: Prueba de permutación para la diferencia de dos varianzas
+  - Script 12.11: (continuación del script 12.10) gráfica del contraste de las hipótesis de igualdad de 
+                  las varianzas usando una prueba de permutación
+ 12.1.7 Prueba de permutaciones para comparar más de dos muestras correlacionadas
+  - Script 12.12: Prueba de permutación para la diferencia de tres medias correlacionadas
+  - Script 12.13: (continuación del script 12.12) gráfica del contraste de las hipótesis de igualdad de 
+                  3 medias correlacionadas usando una prueba de permutación
+  - Script 12.14: (continuación del script 12.13) análisis post-hoc para la prueba de permutación realizada
+
+12.2 Métodos robustos
+ 12.2.1 Alternativas robustas a la media
+ 12.2.2 Prueba de Yuen para dos muestras independientes
+  - Script 12.15: Datos y graficación de dos muestra independientes
+  - Script 12.16: (continuación del script 12.15) poda y graficación de las dos muestras 
+                  independientes truncadas
+  - Script 12.17: (continuación del script 12.16) prueba de Yuen para dos muestras independientes asintótica 
+                  y usando bootstrapping
+ 12.2.3 Prueba de Yuen para dos muestras pareadas
+  - Script 12.18: Datos y graficación de las diferencias en muestras apareadas
+  - Script 12.19: (continuación del script 12.18) prueba de Yuen para dos muestras apareadas
+ 12.2.4 Análisis robusto de una vía para muestras independientes
+  - Script 12.20: Análisis robusto de una vía para comparar tres muestras independientes
+  - Script 12.21: (continuación del script 12.20) análisis robusto de una vía para muestras independientes 
+                  aplicando bootstrapping
+ 12.2.5 Análisis robusto de una vía para muestras correlacionadas
+  - Script 12.22: Datos y graficación de las diferencias de pares de observaciones del ejemplo
+  - Script 12.23: (continuación del script 12.22) análisis robusto de una vía para muestras correlacionadas
+  - Script 12.24: (continuación del script 12.23) análisis robusto de una vía para muestras correlacionadas usando bootstrapping
+
+- Script extra: Código para realizar muestreo

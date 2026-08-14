@@ -1,0 +1,47 @@
+library(dplyr)
+library(forcats)
+library(ggpubr)
+library(glue)
+library(purrr)
+library(rsample)
+library(rstatix)
+library(tibble)
+library(tidyr)
+
+# Crear la matriz de datos y llevarla a formato largo
+Quicksort <- c(11.2, 22.6, 23.4, 23.3, 21.8, 40.1)
+Bubblesort <- c(10.7, 24.3, 25.7, 25.8, 24.8, 45.3)
+Mergesort <- c(10.0, 23.7, 23.7, 21.7, 23.5, 42.7)
+Instancia <- factor(paste0("I", 1:6))
+
+datos_anchos <- tibble(Instancia, Quicksort, Bubblesort, Mergesort)
+datos_largos <- datos_anchos |>
+    pivot_longer(-Instancia, names_to = "Algoritmo", values_to = "Tiempo") |>
+    mutate(Algoritmo = fct(Algoritmo))
+
+# Reescribir la función que usa permutations() para crear las permutaciones
+perm_splits_por_instancia <- function (data, times = 25) {
+    n <- nrow(data)
+    dl <- data |> select(Instancia) |> mutate(fila = row_number()) # línea agregada
+    # indices <- (rep(n, times), sample, replace = FALSE) # línea cambiada por:
+    indices <- map(1:times, ~ {dl |> slice_sample(by = Instancia, n = n) |> pull(fila)})
+    indices <- lapply(indices, rsample:::perm_complement, n = n)
+    split_objs <- map(indices, make_splits, data = data, class = "perm_split")
+    list(splits = split_objs, id = rsample:::names0(length(split_objs), "Permutations"))
+}
+assignInNamespace("perm_splits", perm_splits_por_instancia, ns = "rsample")
+
+# Crear las remuestras
+R <- 2999
+set.seed(432)
+remuestras <- permutations(datos_largos, permute = Tiempo, times = R, apparent = TRUE)
+
+# Función que devuelve el estadístico F para las medidas repetidas en una remuestra
+calc_F <- function(remuestra, ...) {
+    analysis(remuestra) |>
+    anova_test(dv = Tiempo, wid = Instancia, within = Algoritmo, type = 1) |> as_tibble() |>
+    pull(F)
+}
+
+# Obtener la distribución permutada de la diferencia de las medias
+dist_perm <- remuestras |> mutate(F = map(splits, calc_F)) |> unnest(F)

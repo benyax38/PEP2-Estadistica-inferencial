@@ -1,0 +1,37 @@
+# Crear matriz de datos con las muestras pareadas obtenidas
+prueba_1 <- c(3.5, 2.7, 1.0, 1.8, 1.6, 4.3, 5.8, 6.4, 3.9, 4.3,
+            3.4, 5.3, 5.8, 5.3, 2.0, 1.3, 4.0, 5.3, 1.6, 3.6)
+prueba_2 <- c(5.2, 5.1, 5.9, 4.8, 1.4, 2.3, 6.8, 5.3, 3.1, 3.8,
+            4.6, 1.2, 3.9, 2.0, 1.7, 3.3, 6.0, 4.8, 6.9, 1.3)
+datos <- tibble(Nota = prueba_2 - prueba_1)
+library(dplyr)
+library(purrr)
+library(rsample)
+library(tibble)
+library(tidyr)
+
+# Crear las remuestras, incluyendo la muestra original
+R <- 1999
+set.seed(432)
+remuestras <- bootstraps(datos, times = R, apparent = TRUE)
+
+# Función que devuelve la media de una remuestra. En este caso, no
+# es posible obtener el error estándar de forma analítica.
+media_dif <- function(remuestra, ...) {
+    analysis(remuestra) |> summarise(term = "Media diferencias", estimate = mean(Nota)) }
+
+# Obtener la distribución bootstrap de la media de las diferencias
+dist_bt <- remuestras |> mutate(stats = map(splits, media_dif))
+dist_bt_tbl <- dist_bt |> select(-splits) |> unnest(cols = stats)
+
+# Calcular y mostrar los intervalos de confianza para el estadístico de interés
+alfa <- 0.05
+ic_perc <- dist_bt |> int_pctl(statistics = stats, alpha = alfa)
+ic_bias <- dist_bt |> int_bca(statistics = stats, alpha = alfa, .fn = media_dif)
+ics <- bind_rows(ic_perc, ic_bias) |> select(-.alpha) |>
+    mutate(across(where(is.numeric), ~ num(., digits = 4)))
+
+msg <- "Intervalos de confianza para la media de las diferencias"
+cat(msg, ":\n", sep = "")
+cat(rep("-", nchar(msg)), "\n", sep = "")
+print(ics)

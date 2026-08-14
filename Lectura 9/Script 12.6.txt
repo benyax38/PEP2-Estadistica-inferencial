@@ -1,0 +1,12 @@
+# Calcular y mostrar intervalos de confianza unilaterales para el estadístico de interés
+alfa <- 0.05
+ic_t <- dist_bt |> int_t(statistics = stats, alpha = 2 * alfa)
+ic_perc <- dist_bt |> int_pctl(statistics = stats, alpha = 2 * alfa)
+ic_bias <- dist_bt |> int_bca(statistics = stats, alpha = 2 * alfa, .fn = dif_dos_medias)
+ics <- bind_rows(ic_t, ic_perc, ic_bias) |> select(-.alpha) |>
+    mutate(.lower = -Inf) |> mutate(across(where(is.numeric), ~ num(., digits = 4)))
+
+msg <- "Intervalos de confianza unilaterales para la diferencia de dos medias"
+cat("\n", msg, ":\n", sep = "")
+cat(rep("-", nchar(msg)), "\n", sep = "")
+print(ics)

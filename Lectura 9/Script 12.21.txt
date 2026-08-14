@@ -1,0 +1,16 @@
+# Comparar los diferentes algoritmos usando medias truncadas y bootstrapping
+set.seed(666)
+una_via_bt <- t1waybt(Tiempo ~ Algoritmo, data = datos, tr = gamma, nboot = R)
+
+cat("Análisis de una vía para muestras independientes (bootstrapped)\n")
+cat("--------------------------------------------------------------\n")
+print(una_via_bt)
+
+if(una_via_bt[["p.value"]] < alfa) {
+    set.seed(666)
+    una_via_bt_ph <- mcppb20(Tiempo ~ Algoritmo, data = datos, tr = gamma, nboot = R)
+
+    cat("Análisis post-hoc para muestras independientes (bootstrapped)\n")
+    cat("-------------------------------------------------------------\n")
+    print(una_via_bt_ph)
+}

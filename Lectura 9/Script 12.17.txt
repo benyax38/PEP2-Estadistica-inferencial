@@ -1,0 +1,24 @@
+# Aplicar y mostrar la prueba de Yuen asintótica
+prueba <- yuen(Tiempo ~ Algoritmo, data = datos, tr = gamma)
+cat("\nPrueba de Yuen para dos muestras independientes\n")
+cat("-----------------------------------------------\n")
+print(prueba)
+
+# Aplicar la prueba de Yuen con bootstrapping y la media
+R <- 999
+set.seed(135)
+prueba_media <- pb2gen(Tiempo ~ Algoritmo, data = datos, est = "mean", nboot = R)
+
+# Aplicar la prueba de Yuen con bootstrapping y la mediana
+set.seed(135)
+prueba_mediana <- pb2gen(Tiempo ~ Algoritmo, data = datos, est = "median", nboot = R)
+
+# Mostrar los resultados
+cat("\nPrueba de Yuen - implemetación con bootstrapping\n")
+cat("==================================================\n")
+cat("\nResultado al usar bootstrapping y la media como estimador\n")
+cat("---------------------------------------------------------\n")
+print(prueba_media, )
+cat("\nResultado al usar bootstrapping y la mediana como estimador\n")
+cat("-----------------------------------------------------------\n")
+print(prueba_mediana)

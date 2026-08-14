@@ -1,0 +1,25 @@
+# Obtener la diferencia de las varianzas observada en las muestras originales
+dif_obs <- dist_perm |> filter(id == "Apparent") |> pull(dif_v)
+
+# Calcular el valor p
+n_extremos <- dist_perm |> filter(abs(dif_v) >= abs(dif_obs)) |> summarise(n = n())
+p_valor <- n_extremos |> pull() / (R + 1)  # n_extremos ya incluye la diferencia observada
+
+# Crear y mostrar situación de manera gráfica
+titulo <- paste("Contraste de hipótesis usando", R, "permutaciones")
+nota <- if_else(p_valor < 0.001, glue("italic(p)", " < ", "'{sprintf('%.3f', 0.001)}'"),
+                glue("italic(p)", " == ", "'{sprintf('%.3f', p_valor)}'"))
+ancho_barra <- diff(range(dist_perm[["dif_v"]])) / nclass.scott(dist_perm[["dif_v"]])
+ancho_barra_ajustado <- abs(dif_obs) / max(1, round(abs(dif_obs) / ancho_barra))
+
+dist_perm_pl <- dist_perm |>
+    mutate(extremo = factor(if_else(abs(dif_v) >= abs(dif_obs), 1, 0))) |>
+    ggplot(aes(x = dif_v)) +
+    geom_histogram(aes(alpha = extremo), boundary = 0, binwidth = ancho_barra_ajustado,
+                 color = "steelblue4", fill = "steelblue") +
+    labs(title = titulo, x = "Diferencia de dos varianzas", y = "Frecuencia") +
+    geom_vline(xintercept = c(-dif_obs, dif_obs), colour = "steelblue4", linetype = "dashed") +
+    annotate("text", x = dif_obs, y = Inf, hjust = 1.2, vjust = 2, label = nota, parse=TRUE) +
+    scale_alpha_manual(values = c("0" = 0.2, "1" = 1), guide = NULL) +
+    theme(plot.title = element_text(hjust = 0.5)) + theme_pubr()
+print(dist_perm_pl)

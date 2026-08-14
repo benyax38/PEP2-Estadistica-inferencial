@@ -1,0 +1,25 @@
+# Ahora podemos obtener la distribución bootstrap para la diferencia de dos medias
+# si la hipótesis nula fuera verdadera.
+dist_bt_H0 <- remuestras_H0 |> mutate(stats = map(splits, dif_dos_medias)) |>
+    unnest(cols = stats)
+
+# Calcular el valor p
+n_extremos <- dist_bt_H0 |> filter(id != "Apparent") |>
+    filter(estimate <= dif_obs) |> summarise(n = n())
+p_valor <- (n_extremos + 1) / (R + 1)
+
+# Crear y mostrar situación de manera gráfica
+titulo <- sprintf("Contraste de hipótesis usando\n%d repeticiones de bootstrapping", R)
+ancho <- diff(range(dist_bt_H0[["estimate"]])) / nclass.scott(dist_bt_H0[["estimate"]])
+dist_bt_H0_pl <- dist_bt_H0 |> filter(id != "Apparent") |>
+    mutate(extremo = factor(if_else(estimate <= dif_obs, 1, 0))) |>
+    ggplot(aes(x = estimate)) +
+    geom_histogram(aes(alpha = extremo), boundary = dif_obs, binwidth = ancho,
+                 color = "steelblue4", fill = "steelblue") +
+    labs(title = titulo, x = "Diferencia de dos medias", y = "Frecuencia") +
+    geom_vline(xintercept = dif_obs, colour = "steelblue", linetype = "dashed") +
+    annotate("text", x = dif_obs, y = Inf, vjust = 2, hjust = 1.1,
+             label = glue("italic(p) == '{sprintf('%.3f', p_valor)}'"), parse = TRUE) +
+    scale_alpha_manual(values = c("0" = 0.2, "1" = 1), guide = NULL) +
+    theme_pubr() + theme(plot.title = element_text(hjust = 0.5))
+print(dist_bt_H0_pl)

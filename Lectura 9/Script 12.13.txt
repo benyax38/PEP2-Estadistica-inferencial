@@ -1,0 +1,22 @@
+# Obtener el estadístico F observado en las muestras originales
+F_obs <- dist_perm |> filter(id == "Apparent") |> pull(F)
+
+# Calcular el valor p
+n_extremos <- dist_perm |> filter(F >= F_obs) |> summarise(n = n())
+p_valor <- n_extremos |> pull() / (R + 1)
+
+# Crear y mostrar la situación de manera gráfica
+titulo <- sprintf("Contraste de hipótesis usando %d permutaciones", R)
+nota <- if_else(p_valor < 0.001, glue("italic(p)", " < ", "'{sprintf('%.3f', 0.001)}'"),
+                glue("italic(p)", " == ", "'{sprintf('%.3f', p_valor)}'"))
+dist_perm_pl <- dist_perm |>
+    mutate(extremo = factor(if_else(F >= F_obs, 1, 0))) |> ggplot(aes(x = F)) +
+    geom_histogram(aes(alpha = extremo), boundary = F_obs,
+                   binwidth = diff(range(dist_perm[["F"]])) / nclass.scott(dist_perm[["F"]]),
+                   color = "steelblue4", fill = "steelblue") +
+    labs(title = titulo, x = "F", y = "Frecuencia") +
+    geom_vline(xintercept = F_obs, colour = "steelblue4", linetype = "dashed") +
+    annotate("text", x = F_obs, y = Inf, hjust = 1.1, vjust = 2, label = nota, parse = TRUE) +
+    scale_alpha_manual(values = c("0" = 0.2, "1" = 1), guide = NULL) +
+    theme_pubr() + theme(plot.title = element_text(hjust = 0.5))
+print(dist_perm_pl)

@@ -1,0 +1,18 @@
+Cap 13: Regresión lineal simple
+13.1 Correlación
+13.2 Regresión lineal mediante mínimos cuadrados
+ - Script 13.1 Ajuste de una regresión lineal simple
+13.3 Uso del modelo
+13.4 Regresión lineal con un predictor categórico
+ - Script 13.2 Regresión lineal simple con un predictor dicotómico
+13.5 Confiabilidad de un modelo de RLS
+ 13.5.1 Bondad de ajuste
+ 13.5.2 Distribución e independencia
+  - Script 13.3 Evaluación del modelo de regresión lineal simple usado como ejemplo
+ 13.5.3 Influencia de los valores atípicos
+13.6 Calidad predictiva de un modelo de RLS
+ 13.6.1 Error de un modelo RLS
+ 13.6.2 Generalización
+  - Script 13.4 Ajuste de una regresión lineal simple usando validación cruzada
+  - Script 13.5 Ajuste de una regresión lineal simple usando validación cruzada de cinco pliegues
+  - Script 13.6 Ajuste de una regresión lineal simple usando validación cruzada dejando uno fuera
