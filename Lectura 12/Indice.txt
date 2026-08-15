@@ -1,0 +1,13 @@
+Cap 15: Regresión logística
+15.1 La regresión logística
+15.2 Evaluación de un clasificador
+15.3 Ajuste de un modelo de RLOG
+15.4 Regresión logística en R
+ - Script 15.1: Ejemplo de la construcción de un modelo de regresión logística en R
+ - Script 15.2: (continuación del script 15.1) evaluación del modelo de RLog en los datos de entrenamiento
+ - Script 15.3: (continuación del script 15.2) evaluación del modelo de RLog en los datos de prueba
+ - Script 15.4: Ajuste y evaluación de un modelo de regresión logística usando validación cruzada
+15.5 Selección de predictores
+ - Script 15.5: Búsqueda de un modelo de RLog usando regresión escalonada
+ - Script 15.6: Búsqueda de un modelo de RLog usando regresión paso a paso hacia adelante
+15.6 Confiabilidad de un modelo de RLog

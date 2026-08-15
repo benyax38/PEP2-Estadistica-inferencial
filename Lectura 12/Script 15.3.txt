@@ -1,0 +1,30 @@
+# Evaluar el modelo con el conjunto de prueba.
+probs_pru <- predict(modelo, datos_pru, type = "response")
+
+# Graficar curva ROC, indicando AUC obtenido.
+ROC_pru <- roc(datos_pru[["am"]], probs_pru,
+               levels = c("manual", "automático"), direction = "<")
+g_ROC_pru <- ggroc(ROC_pru, color = "steelblue")
+g_ROC_pru <- g_ROC_pru + geom_abline(intercept = 1, slope = 1,
+                                     colour = "steelblue1", linetype = "dashed")
+g_ROC_pru <- g_ROC_pru + xlab("Especificidad") + ylab("Sensibilidad")
+texto_pru <- sprintf("AUC = %.2f", ROC_pru[["auc"]])
+g_ROC_pru <- g_ROC_pru + annotate("text", x = 0.3, y = 0.3, label = texto_pru)
+g_ROC_pru <- g_ROC_pru + theme_pubr()
+print(g_ROC_pru)
+
+# Obtener las predicciones (con el mismo umbral).
+preds_pru <- sapply(probs_pru,
+                    function(p) ifelse(p >= umbral, "automático", "manual"))
+preds_pru <- factor(preds_pru, levels = c("manual", "automático"))
+
+# Obtener y mostrar estadísticas de clasificación en datos de prueba.
+mat_conf_pru <- confusionMatrix(preds_pru, datos_pru[["am"]],
+                                positive = "automático")
+cat("\n\nEvaluación del modelo (cjto. de prueba):\n")
+cat("----------------------------------------\n")
+print(mat_conf_pru[["table"]])
+cat("\n")
+cat(sprintf("     Exactitud: %.3f\n", mat_conf_pru[["overall"]]["Accuracy"]))
+cat(sprintf("  Sensibilidad: %.3f\n", mat_conf_pru[["byClass"]]["Sensitivity"]))
+cat(sprintf(" Especificidad: %.3f\n", mat_conf_pru[["byClass"]]["Specificity"]))
