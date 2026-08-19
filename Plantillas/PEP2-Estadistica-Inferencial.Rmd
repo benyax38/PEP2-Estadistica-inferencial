@@ -1,0 +1,109 @@
+---
+title: "PEP2-Estadistica-inferencial"
+author: "Benjamin Sandoval - Elías Zúñiga"
+date: "2026-08-19"
+output:
+  html_document:
+    toc: true # Activa la tabla de contenidos (índice)
+    toc_float: true # Permite que el índice se mueva al hacer scroll
+    toc_depth: 3 # Define la cantidad de niveles de títulos
+    theme: flatly # Tema visual (bootstrap)
+    highlight: pygments # Define el estilo del código (colores)
+    df_print: paged # Hace paginado al mostrar data frames
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo      = TRUE, # Muestra código R en el documento
+  # warning   = FALSE, # Oculta advertencias
+  message   = FALSE, # Oculta mensajes (como los de carga de paquetes)
+  fig.align = "center", # Centra imágenes
+  fig.width = 7,
+  fig.height = 4 # Parámetros para el tamaño de gráficas
+)
+
+# Librerías necesarias
+library(tidyr)
+library(dplyr)
+library(ggpubr)
+library(ez)
+```
+
+# Contexto
+
+# Lectura de datos
+
+```{r}
+## RLS
+
+# Cargar librerías necesarias
+library(dplyr)
+library(car)  # Útil para diagnósticos posteriores si los requieres
+
+# ------------------------------------------------------------------------------
+# 1. CONFIGURACIÓN INICIAL (¡ÚNICAS LÍNEAS QUE DEBES MODIFICAR EN LA PRUEBA!)
+# ------------------------------------------------------------------------------
+archivo_csv <- "EP09 Datos.csv"  # Cambia por el nombre de tu archivo asignado
+var_respuesta <- "medv"          # Cambia por tu variable dependiente (Y)
+var_predictor <- "lstat"         # Cambia por tu variable independiente (X)
+
+# ------------------------------------------------------------------------------
+# 2. CARGA Y PREPARACIÓN AUTOMÁTICA DE DATOS
+# ------------------------------------------------------------------------------
+# Usamos read.csv2 si tu archivo usa punto y coma (;) y comas decimales (,), 
+# o read.csv si usa comas y puntos decimales.
+datos <- read.csv2(archivo_csv)
+
+# Verificamos la estructura general y aseguramos que las variables sean numéricas
+cat("--- Estructura inicial de los datos ---\n")
+str(datos)
+
+# ------------------------------------------------------------------------------
+# 3. ANÁLISIS PREVIO: COEFICIENTE DE CORRELACIÓN (R de Pearson)
+# ------------------------------------------------------------------------------
+# Evaluamos la fuerza y dirección de la relación lineal previa al modelado
+correlacion <- cor(datos[[var_predictor]], datos[[var_respuesta]], use = "complete.obs")
+cat("\nCoeficiente de Correlación (R) entre", var_predictor, "y", var_respuesta, ":", round(correlacion, 4), "\n")
+
+# ------------------------------------------------------------------------------
+# 4. AJUSTE DEL MODELO DE REGRESIÓN LINEAL SIMPLE (RLS)
+# ------------------------------------------------------------------------------
+# Construcción dinámica de la fórmula usando as.formula
+formula_rls <- as.formula(paste(var_respuesta, "~", var_predictor))
+
+# Ajuste del modelo nativo con lm()
+modelo_rls <- lm(formula_rls, data = datos)
+
+# ------------------------------------------------------------------------------
+# 5. RESULTADOS Y AUTOMATIZACIÓN DE SALIDAS
+# ------------------------------------------------------------------------------
+cat("\n--- Resumen Estadístico del Modelo (Summary) ---\n")
+print(summary(modelo_rls))
+
+cat("\n--- Coeficientes Estimados (Intercepto y Pendiente) ---\n")
+print(coef(modelo_rls))
+
+cat("\n--- Coeficiente de Determinación (R^2 y R^2 Ajustado) ---\n")
+r_squared <- summary(modelo_rls)$r.squared
+adj_r_squared <- summary(modelo_rls)$adj.r.squared
+cat("R^2:", round(r_squared, 4), "| R^2 Ajustado:", round(adj_r_squared, 4), "\n")
+
+# ------------------------------------------------------------------------------
+# 6. VISUALIZACIÓN RÁPIDA (Gráfica de dispersión y recta de regresión)
+# ------------------------------------------------------------------------------
+plot(datos[[var_predictor]], datos[[var_respuesta]],
+     main = paste("RLS:", var_respuesta, "vs", var_predictor),
+     xlab = var_predictor,
+     ylab = var_respuesta,
+     pch = 16, col = "steelblue")
+
+# Añadir la recta de regresión ajustada por el modelo
+abline(modelo_rls, col = "red", lwd = 2)
+```
+
+
+# Desarrollo
+
+# Análisis de los resultados
+
+# Conclusiones
