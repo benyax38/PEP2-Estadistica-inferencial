@@ -1,0 +1,141 @@
+---
+title: "EP09-respuesta-equipo-5"
+author: ""
+output: html_document
+date: "2026-07-29"
+---
+
+```{r setup, include=FALSE}
+options(repos = c(CRAN = "[https://cloud.r-project.org](https://cloud.r-project.org)"))
+knitr::opts_chunk$set(echo = TRUE)
+paquetes <- c("tidyr", "dplyr", "car", "ez", "emmeans", "ggpubr", "rstatix", "knitr", "MASS", "base", "stats")
+install_if_missing <- function(p) {
+  if (!require(p, character.only = TRUE)) {
+    install.packages(p)
+    library(p, character.only = TRUE)
+  }
+}
+invisible(sapply(paquetes, install_if_missing))
+```
+
+# Eunciado
+**Un estudio recolectó medidas anatómicas de 247 hombres y 260 mujeres (Heinz et al., 2003). El estudio incluyó nueve mediciones del esqueleto (ocho diámetros y una profundidad de hueso a hueso) y doce mediciones de grosor (circunferencias) que incluyen el tejido. La siguiente tabla detalla las variables registradas en este estudio:**
+
+## Carga de datos
+
+```{r}
+datos <- read.csv2("EP09 Datos.csv", stringsAsFactors = TRUE)
+```
+
+# Pregunta 1
+
+**Definir la semilla a utilizar, que corresponde a los últimos cuatro dígitos del RUN (sin considerar el dígito verificador) del integrante de menor edad del equipo.**
+
+```{r}
+set.seed(1368)
+```
+
+# Pregunta 2
+
+**Seleccionar una muestra aleatoria de 100 mujeres (si la semilla es un número par) o 100 hombres (si la semilla es impar), y separar 70 casos para trabajar en la construcción de modelos y 30 para su evaluación en datos no vistos.**
+
+```{r}
+# Obtención de muestra, como la semilla utilizada es par, entonces obtener muestra de 100 mujeres
+# Aplicamos filtro de 
+women <- datos %>% filter(Gender == 0)
+
+muestra <- women %>% slice_sample(n = 100)
+
+casos <- muestra %>% slice_sample(n = 70)
+
+no_vistos <- muestra %>% anti_join(casos)
+```
+
+# Pregunta 3
+
+**Seleccionar de forma aleatoria ocho posibles variables predictoras (sin considerar la estatura).**
+
+```{r}
+set.seed(1368)
+variables <- setdiff(names(casos), c("Weight", "Height", "Gender"))
+
+variables_seleccionadas <- sample(variables, 8)
+print(variables_seleccionadas)
+
+datos_reducidos <- casos[, variables_seleccionadas]
+```
+Obteniendo las siguientes variables en una tabla:
+
+```{r}
+
+```
+
+# Pregunta 4 
+
+**Seleccionar, de las otras variables, una que el equipo considere que podría ser útil para predecir la variable Peso (sin considerar la estatura), justificando bien esta selección.**
+
+Se seleccionó la variable "Waist.Girth", 
+
+# Pregunta 5
+
+**Usando el entorno R y paquetes estándares, construir un modelo de regresión lineal simple con el predictor seleccionado en el paso anterior.**
+
+```{r}
+mls <- lm(Weight ~ Waist.Girth, data = casos)
+summary(mls)
+```
+
+# Pregunta 6
+
+**Usando herramientas estándares para la exploración de modelos del entorno R, buscar entre dos y cinco predictores de entre las variables seleccionadas al azar en el punto 3, para agregar al modelo de regresión lineal simple obtenido en el paso 5.**
+
+```{r}
+# 8 variables al azar, más seleccionada en p5
+
+mls_completo <- lm(Weight ~ Waist.Girth + Ankle.Minimum.Girth + Bitrochanteric.diameter + Age + Wrist.Minimum.Girth + Hip.Girth + Calf.Maximum.Girth + Knee.Girth + Thigh.Girth, data = casos)
+
+summary(mls_completo)
+
+```
+Para la selección de predictores se optó por utilizar la regresión paso a paso (...explicación...). Se utiliza la función step(), que parte de mls y va agregando predictores hasta llegar a mls_completo, con el criterio de AIC donde cuanto menor AIC, mejor es el modelo, siempre que sea comparado con los mismos datos y variables de respuesta.
+
+```{r}
+mls_step <- step(mls,
+                  scope = list(lower=mls,
+                               upper=mls_completo),
+                  direction = "forward")
+```
+Comparando con los modelos que contienen entre 2 y 5 predictores, observamos que el modelo con menor AIC presentado es aquel que contiene 5 predictores con un valor AIC = 122.22, por lo que se selecciona como modelo final y lo evaluamos.
+
+```{r}
+mls_final <- lm(Weight ~ Waist.Girth + Knee.Girth + Calf.Maximum.Girth + Wrist.Minimum.Girth + Hip.Girth, data = casos)
+summary(mls_final)
+```
+
+
+
+# Pregunta 7
+
+**Evaluar la bondad de ajuste (incluyendo el análisis de casos atípicos y casos influyentes) y la generalidad (condiciones para RLM) de los modelos y “arreglarlos” en caso de que presenten algún problema.**
+
+```{r}
+modelo_0 <- lm(Weight ~ 1, data = casos)
+modelo_1 <- lm(Weight ~ Waist.Girth, data = casos)
+modelo_2 <- lm(Weight ~ Waist.Girth + Knee.Girth, data = casos)
+modelo_3 <- lm(Weight ~ Waist.Girth + Knee.Girth + Calf.Maximum.Girth, data = casos)
+modelo_4 <- lm(Weight ~ Waist.Girth + Knee.Girth + Calf.Maximum.Girth + Wrist.Minimum.Girth, data = casos)
+modelo_5 <- lm(Weight ~ Waist.Girth + Knee.Girth + Calf.Maximum.Girth + Wrist.Minimum.Girth + Hip.Girth, data = casos)
+
+AIC(modelo_0, modelo_1, modelo_2, modelo_3, modelo_4, modelo_5)
+BIC(modelo_0, modelo_1, modelo_2, modelo_3, modelo_4, modelo_5)
+
+anova(modelo_0, modelo_1, modelo_2, modelo_3, modelo_4, modelo_5)
+```
+
+# Pregunta 8
+
+**Evaluar el poder predictivo del modelo con los datos no utilizados para construirlo.**
+
+```{r}
+
+```

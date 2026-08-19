@@ -1,0 +1,116 @@
+---
+title: "EI-EP08-respuesta-equipo-2"
+author: "---"
+output: html_document
+date: "2026-05-12"
+---
+
+```{r setup, include=FALSE}
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+knitr::opts_chunk$set(echo = TRUE)
+paquetes <- c("tidyr", "dplyr", "car", "ez", "emmeans", "ggpubr", "rstatix", "knitr", "MASS")
+install_if_missing <- function(p) {
+  if (!require(p, character.only = TRUE)) {
+    install.packages(p)
+    library(p, character.only = TRUE)
+  }
+}
+invisible(sapply(paquetes, install_if_missing))
+```
+
+# Enunciado
+
+**la Encuesta de Caracterización Socioeconómica Nacional (Casen) es realizada por el Ministerio de Desarrollo Social de forma periódica para conocer la situación de los hogares chilenos con relación a aspectos demográficos, de educación, salud, vivienda, trabajo e ingresos. Es la principal fuente de información para estimar la magnitud de la pobreza y la distribución del ingreso en el país. Se tiene a disposición un archivo CSV con un subconjunto de los datos obtenidos en la Casen 2017. El equipo debe revisar las columnas disponibles en este archivo según la descripción en el libro de códigos de la encuesta, que también queda disponible para este ejercicio. Es importante notar que en esta encuesta hay datos de carácter colectivo sobre “el hogar” del entrevistado, pero también hay datos de carácter individual, que se refieren “al jefe o la jefa de hogar” (no al entrevistado).**
+
+## Carga de datos
+
+```{r}
+datos <- read.csv("EP08 Datos CASEN 2017.csv", stringsAsFactors = TRUE)
+```
+
+# Pregunta 1
+**Propongan una pregunta de investigación original, que involucre la comparación de la frecuencia en que se observa un evento o característica en dos grupos independientes (más abajo se dan unos ejemplos). Fijando una semilla propia, seleccionen una muestra aleatoria de hogares (100 < n < 150) y respondan la pregunta propuesta utilizando una prueba de permutaciones Monte Carlo. Deben reportar un intervalo de confianza para el estadístico utilizado usando las mismas remuestras.**
+
+## Propuesta
+
+La frecuencia de hogares en la región de valparaíso (region) que habitan en una vivienda en calidad de arriendo con contrato (variable v13) ¿presenta diferencias significativas dependiendo de si la jefatura del hogar recae en un hombre o en una mujer (variable sexo)?
+
+## Filtro de datos
+
+```{r}
+# Aplicamos filtros
+valpo <- datos %>% filter(region == "Región de Valparaíso") %>% dplyr::select(sexo, v13)
+valpo_arriendos <- valpo %>% filter(v13 == "Arrendada sin contrato" | v13 == "Arrendada con contrato")
+
+men <- valpo_arriendos %>% filter(sexo == "Hombre")
+women <- valpo_arriendos %>% filter(sexo == "Mujer")
+
+# Utilizamos una semilla
+set.seed(25)
+
+# Obtenemos muestra aleatoria de 125 observaciones
+muestra1 <- sample(men$v13, size = 125)
+muestra2 <- sample(women$v13, size = 125)
+```
+
+## Hipótesis
+
+Se declaran las siguientes hipótesis:
+
+$H_0$: No existen diferencias significativas en las frecuencias entre las jefaturas masculina y femenina con hogares arrandadas con contrato en la región de Valparaíso. Matemáticamente $\mu_{Hombres} = \mu_{Mujeres}$
+
+$H_A$: Sí existen diferencias significativas en las frecuencias entre las jefaturas masculina y femenina con hogares arrandadas con contrato en la región de Valparaíso. Matemáticamente $\mu_{Hombres} \neq \mu_{Mujeres}$
+
+En este caso trabajamos con 2 muestras independientes tomadas de forma aleatoria asi que se aplicaría una prueba de permutaciones para dos muestras independientes.
+
+## Verificación de condiciones
+
+Procedemos a verififcar si se cumplen las condiciones necesarias para aplicar dicha prueba:
+
+### 1- Independencia de muestras
+
+El dataframe utilizado no se encuentra la variable pco2 el cuál representa "parentesco con jefe de núcleo" siendo el valor 1 como "jefe de núcleo", en otras palabras, jefe de hogar. Por lo que se puede asumir que las observaciones de este dataframe pertenecen a jefes de hogar y en consecuencia, son observaciones independientes. Así que, se cumple la independencia de muestras.
+
+### 2- 
+
+
+
+## Prueba
+
+```{r}
+
+```
+
+## Conclusión
+
+
+
+# Pregunta 2
+**Propongan una pregunta de investigación original, que involucre la comparación de las medias de más de dos grupos independientes (más abajo se dan unos ejemplos). Fijando una semilla distinta a la anterior, seleccionen una muestra aleatoria de hogares (200 < n < 300) y respondan la pregunta propuesta utilizando bootstrapping. Solo por ejercicio académico, aplique un análisis post-hoc con bootstrapping aunque este no fuera necesario. Indicación: consideren que el análisis post-hoc debe hacerse con las mismas remuestras usadas para la prueba ómnibus.**
+
+## Propuesta
+
+Considerando únicamente a los jefes y jefas de hogar que viven con niños o menores de edad y no cuidan a una persona con algún grado de discapacidad o dependencia en la región de Antofagasta, ¿el promedio de horas trabajadas a la semana (y2.hrs) presenta diferencias significativas según las distintas categorías de su ocupación principal (o15)?
+
+## Filtro de datos
+
+```{r}
+
+```
+
+## Hipótesis
+
+
+
+## Verificación de condiciones
+
+
+
+## Prueba
+
+```{r}
+
+```
+
+## Conclusión
+

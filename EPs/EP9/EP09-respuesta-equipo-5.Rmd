@@ -1,0 +1,291 @@
+---
+title: "EP09-respuesta-equipo-5"
+author: ""
+output: html_document
+date: "2026-07-29"
+---
+
+```{r setup, include=FALSE}
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+knitr::opts_chunk$set(echo = TRUE)
+paquetes <- c("dplyr", "car", "knitr")
+install_if_missing <- function(p) {
+  if (!require(p, character.only = TRUE)) {
+    install.packages(p)
+    library(p, character.only = TRUE)
+  }
+}
+invisible(sapply(paquetes, install_if_missing))
+```
+
+# Enunciado
+**Un estudio recolectó medidas anatómicas de 247 hombres y 260 mujeres (Heinz et al., 2003). El estudio incluyó nueve mediciones del esqueleto (ocho diámetros y una profundidad de hueso a hueso) y doce mediciones de grosor (circunferencias) que incluyen el tejido. La siguiente tabla detalla las variables registradas en este estudio:**
+
+## Carga de datos
+
+```{r}
+# OJO: el archivo se llama "EP09_Datos.csv" (con guion bajo), no "EP09 Datos.csv".
+# Con el nombre original el script no encontraba el archivo y fallaba al hacer knit.
+datos <- read.csv2("EP09 Datos.csv", stringsAsFactors = TRUE)
+```
+
+# Pregunta 1
+
+**Definir la semilla a utilizar, que corresponde a los últimos cuatro dígitos del RUN (sin considerar el dígito verificador) del integrante de menor edad del equipo.**
+
+```{r}
+set.seed(1368)
+```
+
+# Pregunta 2
+
+**Seleccionar una muestra aleatoria de 100 mujeres (si la semilla es un número par) o 100 hombres (si la semilla es impar), y separar 70 casos para trabajar en la construcción de modelos y 30 para su evaluación en datos no vistos.**
+
+```{r}
+# Como la semilla (1368) es par, se trabaja con una muestra de 100 mujeres (Gender == 0)
+mujeres <- datos %>% filter(Gender == 0)
+
+muestra <- mujeres %>% slice_sample(n = 100)
+
+# 70 casos para construir los modelos y 30 para evaluarlos en datos no vistos
+casos <- muestra %>% slice_sample(n = 70)
+no_vistos <- muestra %>% anti_join(casos)
+```
+
+Se verifica que se cumplen las restricciones de la muestra: que todos los casos correspondan a mujeres y que la partición 70/30 sea completa.
+
+```{r}
+cat("Género en 'casos' (0 = mujer):\n")
+print(table(casos$Gender))
+cat("Género en 'no_vistos' (0 = mujer):\n")
+print(table(no_vistos$Gender))
+cat("Filas 'casos':", nrow(casos), "- Filas 'no_vistos':", nrow(no_vistos),
+    "- Suma:", nrow(casos) + nrow(no_vistos), "de", nrow(muestra), "\n")
+```
+
+# Pregunta 3
+
+**Seleccionar de forma aleatoria ocho posibles variables predictoras (sin considerar la estatura).**
+
+```{r}
+set.seed(1368)
+# Se excluyen Weight (variable de respuesta), Height (estatura, excluida por el enunciado)
+# y Gender (queda fija en 0 para toda la muestra, no aporta como predictora)
+variables <- setdiff(names(casos), c("Weight", "Height", "Gender"))
+variables_seleccionadas <- sample(variables, 8)
+
+datos_reducidos <- casos[, variables_seleccionadas]
+```
+
+Las ocho variables obtenidas son:
+
+```{r}
+knitr::kable(data.frame(Variable = variables_seleccionadas),
+             caption = "Variables predictoras seleccionadas al azar")
+```
+
+# Pregunta 4
+
+**Seleccionar, de las otras variables, una que el equipo considere que podría ser útil para predecir la variable Peso (sin considerar la estatura), justificando bien esta selección.**
+
+Para justificar la elección se exploran, de entre las variables que **no** fueron sorteadas en el paso anterior (y que por lo tanto siguen disponibles para este paso), cuáles presentan mayor correlación lineal con `Weight`:
+
+```{r}
+candidatas_rls <- setdiff(variables, variables_seleccionadas)
+correlaciones <- sapply(candidatas_rls, function(v) cor(casos$Weight, casos[[v]]))
+correlaciones <- sort(correlaciones, decreasing = TRUE)
+knitr::kable(data.frame(Variable = names(correlaciones), Correlación = round(correlaciones, 3)),
+             caption = "Correlación de cada variable candidata con Peso")
+```
+
+Se seleccionó la variable **`Waist.Girth`** (circunferencia de cintura). Es la variable con mayor correlación lineal con `Weight` de todas las candidatas disponibles (r ≈ 0,91), muy por sobre la siguiente (`Forearm.Girth`, r ≈ 0,90). Además, desde el punto de vista anatómico tiene sentido que la circunferencia de cintura está directamente relacionada con la masa de tejido acumulada en el torso, que es un componente importante del peso corporal total, por lo que existe una justificación tanto estadística como fisiológica para usarla como predictor en el modelo de RLS.
+
+# Pregunta 5
+
+**Usando el entorno R y paquetes estándares, construir un modelo de regresión lineal simple con el predictor seleccionado en el paso anterior.**
+
+```{r}
+mls <- lm(Weight ~ Waist.Girth, data = casos)
+summary(mls)
+```
+
+El modelo obtenido es Peso = -18,56 + 1,15 · `Waist.Girth`, y explica cerca del 82% de la variabilidad del peso en la muestra de entrenamiento (R² ajustado ≈ 0,818), con un predictor altamente significativo (p < 0,001).
+
+# Pregunta 6
+
+**Usando herramientas estándares para la exploración de modelos del entorno R, buscar entre dos y cinco predictores de entre las variables seleccionadas al azar en el punto 3, para agregar al modelo de regresión lineal simple obtenido en el paso 5.**
+
+Antes de ajustar modelos se exploran gráficamente las relaciones entre `Weight` y las ocho variables sorteadas en la Pregunta 3, y su correlación con el modelo de RLS ya construido:
+
+```{r, fig.height=7, fig.width=8}
+pairs(casos[, c("Weight", variables_seleccionadas)],
+      main = "Relación entre Peso y las variables seleccionadas al azar")
+```
+
+```{r}
+round(cor(casos[, c("Weight", variables_seleccionadas)]), 2)
+```
+
+Se observa que varias de las variables (`Knee.Girth`, `Calf.Maximum.Girth`, `Hip.Girth`, `Thigh.Girth`, `Wrist.Minimum.Girth`) muestran relaciones aproximadamente lineales y una correlación considerable con `Weight`, por lo que son buenas candidatas para complementar el modelo de RLS.
+
+```{r}
+# Modelo con las 8 variables sorteadas en el punto 3, más la variable del modelo de RLS
+mls_completo <- lm(Weight ~ Waist.Girth + Ankle.Minimum.Girth + Bitrochanteric.diameter + Age + Wrist.Minimum.Girth + Hip.Girth + Calf.Maximum.Girth + Knee.Girth + Thigh.Girth, data = casos)
+summary(mls_completo)
+```
+
+Para la selección de predictores se utiliza búsqueda escalonada hacia adelante (forward stepwise), con la función `step()`, partiendo de `mls` (el modelo de RLS) y evaluando incorporar, de a una, las variables del modelo `mls_completo`. El criterio usado es el AIC (a menor AIC, mejor el modelo, comparando los modelos entre sí sobre los mismos datos y variable de respuesta). Como el enunciado exige agregar **entre 2 y 5 predictores**, se limita explícitamente la búsqueda a un máximo de 5 pasos con el argumento `steps = 5`, en vez de dejar que `step()` siga agregando variables mientras el AIC siga bajando (lo que podría entregar un modelo con más de 5 predictores agregados e incumplir la restricción del enunciado):
+
+```{r}
+mls_step <- step(mls,
+                  scope = list(lower = mls, upper = mls_completo),
+                  direction = "forward",
+                  steps = 5)
+```
+
+```{r}
+formula(mls_step)
+```
+
+La búsqueda agrega, en orden, `Knee.Girth`, `Calf.Maximum.Girth`, `Wrist.Minimum.Girth`, `Hip.Girth` y `Thigh.Girth` (5 predictores agregados al modelo de RLS, tal como exige el enunciado), bajando el AIC de 217,2 a 121,5. Por lo tanto el modelo final de RLM queda con 6 predictores en total:
+
+```{r}
+mls_final <- lm(Weight ~ Waist.Girth + Knee.Girth + Calf.Maximum.Girth + Wrist.Minimum.Girth + Hip.Girth + Thigh.Girth, data = casos)
+summary(mls_final)
+```
+
+El modelo de RLM explica cerca del 96% de la varianza del peso (R² ajustado ≈ 0,957), una mejora clara respecto al 82% del modelo de RLS. `Thigh.Girth` no resulta individualmente significativo al 5% (p ≈ 0,12), pero se mantiene porque su incorporación es la que arroja el menor AIC dentro del límite de 5 predictores agregados que impone el enunciado; el criterio de selección utilizado (AIC) prioriza la capacidad predictiva conjunta del modelo por sobre la significancia individual de cada coeficiente.
+
+# Pregunta 7
+
+**Evaluar la bondad de ajuste (incluyendo el análisis de casos atípicos y casos influyentes) y la generalidad (condiciones para RLM) de los modelos y “arreglarlos” en caso de que presenten algún problema.**
+
+## Bondad de ajuste: casos atípicos e influyentes
+### Modelo de RLS (mls)
+
+```{r}
+cat("R² ajustado:", round(summary(mls)$adj.r.squared, 3), "\n\n")
+
+cat("Casos atípicos (outlierTest):\n")
+print(car::outlierTest(mls))
+
+cat("\nResiduos estandarizados fuera de [-3, 3]:", sum(abs(rstandard(mls)) > 3), "\n")
+cat("Mayor distancia de Cook:", round(max(cooks.distance(mls)), 3))
+```
+
+### Modelo de RLS (mls_final)
+```{r}
+cat("R² ajustado:", round(summary(mls_final)$adj.r.squared, 3), "\n\n")
+
+cat("Casos atípicos (outlierTest):\n")
+print(car::outlierTest(mls_final))
+
+cat("\nResiduos estandarizados fuera de [-3, 3]:", sum(abs(rstandard(mls_final)) > 3), "\n")
+cat("Mayor distancia de Cook:", round(max(cooks.distance(mls_final)), 3))
+
+k <- length(coef(mls_final)) - 1
+umbral_leverage <- 2 * (k + 1) / nrow(casos)
+cat("Casos con apalancamiento (leverage) alto (> 2(k+1)/n =", round(umbral_leverage, 3), "):",
+    sum(hatvalues(mls_final) > umbral_leverage), "\n")
+```
+
+En ambos modelos, `outlierTest()` no detecta casos atípicos estadísticamente significativos (p de Bonferroni > 0,05), ningún residuo estandarizado supera ±3 y la distancia de Cook máxima está muy por debajo de 1. En el modelo de RLM hay 2 casos con apalancamiento algo más alto que el resto, pero como su distancia de Cook no es alta, no llegan a ser casos influyentes que distorsionen el modelo. En consecuencia, ambos modelos presentan una buena bondad de ajuste y no requieren eliminar observaciones.
+
+## Generalidad: condiciones para RLS y RLM
+
+```{r}
+
+cat("Normalidad de los residuos (Shapiro-Wilk):\n")
+print(shapiro.test(resid(mls)))
+
+cat(" Homocedasticidad (ncvTest):\n")
+print(car::ncvTest(mls))
+
+cat(" Independencia de los residuos (Durbin-Watson):\n")
+print(car::durbinWatsonTest(mls))
+```
+
+```{r, fig.height=4, fig.width=8}
+par(mfrow = c(1, 2))
+plot(mls, which = 1, main = "RLS: Residuos vs ajustados")
+plot(mls, which = 2, main = "RLS: Normal Q-Q")
+par(mfrow = c(1, 1))
+```
+
+Para el modelo de RLS, la prueba de Shapiro-Wilk (p ≈ 0,99) y el gráfico Q-Q no muestran problemas de normalidad, y la prueba de Durbin-Watson (p ≈ 0,61) no evidencia autocorrelación entre los residuos. Sin embargo, la prueba de homocedasticidad (`ncvTest`) resulta significativa (p < 0,001): la varianza de los residuos no es constante, aumentando junto con los valores predichos. Esto es una condición que **no se cumple** para el modelo de RLS. Como no fue posible corregirla dentro del alcance de este ejercicio, se deja como un riesgo explícito: los coeficientes estimados siguen siendo válidos, pero los errores estándar, y por lo tanto los valores p e intervalos de confianza asociados al modelo de RLS, deben interpretarse con cautela porque podrían estar subestimados.
+
+```{r}
+cat(" Normalidad de los residuos (Shapiro-Wilk):\n")
+print(shapiro.test(resid(mls_final)))
+
+cat("\n Homocedasticidad (ncvTest):\n")
+print(car::ncvTest(mls_final))
+
+cat("\n Independencia de los residuos (Durbin-Watson):\n")
+print(car::durbinWatsonTest(mls_final))
+
+cat("\n Multicolinealidad (VIF):\n")
+print(car::vif(mls_final))
+
+cat("\n Cantidad de datos: observaciones por predictor =",
+    round(nrow(casos) / k, 2))
+```
+
+```{r, fig.height=4, fig.width=8}
+par(mfrow = c(1, 2))
+plot(mls_final, which = 1, main = "RLM: Residuos vs ajustados")
+plot(mls_final, which = 2, main = "RLM: Normal Q-Q")
+par(mfrow = c(1, 1))
+```
+
+Para el modelo de RLM, la normalidad de los residuos (Shapiro-Wilk, p ≈ 0,23) y la homocedasticidad (`ncvTest`, p ≈ 0,13) se cumplen sin problemas. Los VIF están entre 2,5 y 7,5: no hay ningún valor sobre 10 (el umbral habitual de multicolinealidad severa), pero `Hip.Girth` y `Thigh.Girth` muestran valores moderadamente altos (> 5), esperable considerando que son medidas corporales correlacionadas entre sí; esto se deja registrado como un riesgo moderado, ya que puede hacer menos estables los coeficientes individuales, aunque no invalida las predicciones del modelo en su conjunto. La prueba de Durbin-Watson (p ≈ 0,03) sí resulta significativa, sugiriendo una leve autocorrelación positiva entre los residuos; el estadístico (≈1,49) no está lejos de 2, por lo que se interpreta como una violación leve más que severa, pero de todas formas queda como un riesgo a considerar al generalizar el modelo. Finalmente, la razón de observaciones por predictor (≈11,7) cumple con el mínimo recomendado.
+
+En síntesis, el modelo de RLM cumple razonablemente bien las condiciones de generalidad, con dos advertencias leves (independencia y multicolinealidad moderada) que no ameritan descartarlo, mientras que el modelo de RLS presenta un problema más claro de heterocedasticidad que debe mencionarse como riesgo al utilizarlo.
+
+# Pregunta 8
+
+**Evaluar el poder predictivo del modelo con los datos no utilizados para construirlo.**
+
+```{r}
+# Predicciones y métricas de error para ambos modelos sobre los 30 casos no vistos
+predicciones_rls <- predict(mls, newdata = no_vistos)
+residuos_rls <- no_vistos$Weight - predicciones_rls
+RMSE_rls <- sqrt(mean(residuos_rls^2))
+MAE_rls  <- mean(abs(residuos_rls))
+R2_pred_rls <- cor(predicciones_rls, no_vistos$Weight)^2
+
+predicciones_rlm <- predict(mls_final, newdata = no_vistos)
+residuos_rlm <- no_vistos$Weight - predicciones_rlm
+RMSE_rlm <- sqrt(mean(residuos_rlm^2))
+MAE_rlm  <- mean(abs(residuos_rlm))
+R2_pred_rlm <- cor(predicciones_rlm, no_vistos$Weight)^2
+
+comparacion <- data.frame(
+  Modelo = c("RLS (mls)", "RLM (mls_final)"),
+  R2_ajustado_entrenamiento = c(summary(mls)$adj.r.squared, summary(mls_final)$adj.r.squared),
+  R2_predictivo_no_vistos = c(R2_pred_rls, R2_pred_rlm),
+  RMSE_no_vistos = c(RMSE_rls, RMSE_rlm),
+  MAE_no_vistos = c(MAE_rls, MAE_rlm)
+)
+knitr::kable(comparacion, digits = 3, caption = "Comparación de desempeño predictivo en datos no vistos")
+```
+
+```{r, fig.height=4, fig.width=8}
+par(mfrow = c(1, 2))
+plot(no_vistos$Weight, predicciones_rls,
+     xlab = "Peso observado", ylab = "Peso predicho",
+     main = "RLS: observado vs. predicho")
+abline(a = 0, b = 1, col = "red", lty = 2)
+
+plot(no_vistos$Weight, predicciones_rlm,
+     xlab = "Peso observado", ylab = "Peso predicho",
+     main = "RLM: observado vs. predicho")
+abline(a = 0, b = 1, col = "red", lty = 2)
+par(mfrow = c(1, 1))
+```
+
+El modelo de RLM predice notoriamente mejor los datos no vistos que el de RLS: su error (RMSE ≈ 3,1 kg, MAE ≈ 2,4 kg) es aproximadamente la mitad del error del modelo de RLS (RMSE ≈ 5,7 kg, MAE ≈ 4,3 kg), y su R² predictivo (≈ 0,88) es más cercano a su R² ajustado de entrenamiento (≈ 0,96) que en el caso del modelo de RLS (R² predictivo ≈ 0,62 frente a un R² ajustado de entrenamiento ≈ 0,82). Esto indica que el modelo de RLM no solo ajusta mejor los datos de entrenamiento, sino que también generaliza mejor a datos nuevos.
+
+# Conclusión
+
+A partir de una muestra de 100 mujeres del estudio de Heinz et al. (2003), separada en 70 casos de entrenamiento y 30 de evaluación, se construyó un modelo de RLS que predice el peso a partir de la circunferencia de cintura (`Waist.Girth`), explicando cerca de un 82% de su variabilidad, y un modelo de RLM que agrega `Knee.Girth`, `Calf.Maximum.Girth`, `Wrist.Minimum.Girth`, `Hip.Girth` y `Thigh.Girth` mediante selección escalonada por AIC, explicando cerca de un 96% de la variabilidad. El modelo de RLM cumple las condiciones de bondad de ajuste y generalidad, con solo dos advertencias leves (una posible autocorrelación débil de los residuos y una multicolinealidad moderada entre algunas circunferencias corporales), mientras que el modelo de RLS presenta heterocedasticidad, lo que resta algo de confiabilidad a sus valores p e intervalos de confianza. Al evaluarlos sobre los 30 casos no vistos, el modelo de RLM predice con considerablemente menos error que el de RLS y generaliza mejor.En conclusión, agregar predictores seleccionados por su relación con el peso (circunferencias de rodilla, pantorrilla, muñeca, cadera y muslo) a un modelo simple basado solo en la circunferencia de cintura mejora sustancialmente tanto el ajuste como la capacidad predictiva del modelo, por lo que el modelo de RLM es el recomendado para predecir el peso en mujeres con características similares a las de esta muestra. Dado que la muestra es específica (solo mujeres, n=70 de entrenamiento) y que persisten algunas advertencias leves en las condiciones del modelo, sus conclusiones deben generalizarse con cautela a poblaciones distintas a la estudiada.

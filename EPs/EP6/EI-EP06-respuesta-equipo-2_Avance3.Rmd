@@ -1,0 +1,179 @@
+---
+title: "EI-EP06-respuesta-equipo-2"
+author: "---"
+output: html_document
+date: "2026-04-30"
+---
+
+```{r setup, include=FALSE}
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+knitr::opts_chunk$set(echo = TRUE)
+paquetes <- c("tidyr", "dplyr", "car", "ez", "emmeans", "ggpubr", "rstatix", "knitr")
+install_if_missing <- function(p) {
+  if (!require(p, character.only = TRUE)) {
+    install.packages(p)
+    library(p, character.only = TRUE)
+  }
+}
+invisible(sapply(paquetes, install_if_missing))
+```
+
+**Un equipo de investigadores del área de interacción humano-información está estudiando si el área temática y el nivel de dificultad del problema de información influyen en el tiempo (en segundos) que toma un usuario en formular una consulta de búsqueda para resolver dicho problema. Para ello, han reclutado a un grupo de participantes voluntarios, asignados aleatoriamente a distintos grupos. Cada participante debe resolver tres problemas de información con diferentes niveles de dificultad: baja, media y alta. A su vez, cada grupo debe resolver problemas relacionados a una temática diferente. Los datos recolectados contemplan las siguientes variables:**
+
+```{r}
+diccionario_variables <- data.frame(
+  Variable = c("id","area", "dificultad", "tiempo"),
+  Clasificacion = c("Cualitativa nominal",
+                    "Cualitativa nominal",
+                    "Cualitativa ordinal",
+                    "Cuantitativa continua"),
+  Descripcion = c(
+    "Identificador único de cada participante.",
+    "Área temática de los problemas. Niveles: Arquitectura, Biología, Computación, Economía, Física, Leyes, Literatura, Matemáticas, Música, Pedagogía, Psicología, Química.",
+    "Nivel de dificultad del problema. Niveles: Baja, Media y Alta.",
+    "Tiempo, en segundos, que toma al participante formular la consulta.")
+)
+kable(diccionario_variables, caption = "Tabla de variables")
+```
+
+
+# Pregunta 1
+
+**En este momento, los investigadores buscan determinar si existen diferencias en el tiempo que tardan los usuarios en formular consultas para problemas con diferente nivel de dificultad en el área de computación.**
+
+## Carga de datos
+
+```{r}
+datos <- read.csv("EP06 Datos.csv", stringsAsFactors = TRUE)
+
+# Filtrar solo el área de Computación
+datos_comp <- datos %>% filter(area == "Computación")
+
+print(table(datos_comp$dificultad))
+```
+
+## Hipótesis
+
+Ya que cada participante resolvió problemas de 3 niveles de dificultad distintos, se trata de mediciones pareadas (muestras correlacionadas). Por lo tanto se aplicará ANOVA de una vía para muestras correlacionadas (ANOVA de medidas repetidas).
+
+$H_0$: No existen diferencias en el tiempo medio que tardan los participantes del área de Computación en formular consultas según el nivel de dificultad del problema. Matemáticamente: $\mu_{Baja} = \mu_{Media} = \mu_{Alta}$.
+
+$H_A$: Al menos un nivel de dificultad presenta un tiempo medio diferente de los demás. Matemáticamente: $\exists i, j \in \{\text{Baja, Media, Alta}\}, i \neq j \mid \mu_i \neq \mu_j$
+
+Se usará un nivel de significación $\alpha = 0.05$.
+
+## Verificación de condiciones
+
+### 1. Escala de medición
+
+Según la tabla de variables del enunciado se afirma que la variable dependiente (el tiempo) se mide en segundos y el archivo .csv presenta correctamente dicha variable en cada instancia (estudiante), por lo que se cumple la primera condición.
+
+### 2. Independencia de observaciones al interior de la muestra
+
+El enunciado afirma que los estudiantes fueron asignados de forma aleatoria a distintos grupos y asumiendo que cada uno de ellos resolvió individualmente 3 problemas de información, se puede afirmar que se cumple la segunda condición.
+
+### 3. Distribución aproximadamente normal de las diferencias
+
+Para ANOVA de medidas repetidas, se requiere que la distribución de los tiempos en cada condición se aproxime a la normal (o que el tamaño muestral sea suficientemente grande por el TLC).
+
+```{r}
+ggqqplot(datos_comp, x = "tiempo", facet.by = "dificultad",
+         title = "Gráficos Q-Q por nivel de dificultad")
+```
+
+Se utilizó el gráfico Q-Q para evaluar el supuesto de normalidad en cada nivel de dificultad. Se observa que los puntos siguen de cerca la línea de referencia central y se mantienen, en su gran mayoría, dentro de la zona sombreada.
+
+### 4. Esfericidad
+
+La esfericidad se verificará mediante la prueba de Mauchly.
+
+## ANOVA ómnibus de medidas repetidas
+
+```{r}
+datos_comp$id <- factor(datos_comp$id)
+
+modelo_anova <- ezANOVA(
+  data      = datos_comp,
+  dv        = tiempo,
+  wid       = id,
+  within    = dificultad,
+  detailed  = TRUE,
+  type      = 3
+)
+
+print(modelo_anova)
+```
+
+Con lo anterior se cumple el supuesto de esfericidad (Mauchly, $W = 0.994, p = 0.577$).
+
+Los resultados demuestran que el nivel de dificultad sí influye significativamente en el tiempo que tardan los usuarios en formular sus consultas ($F(2, 398) = 18.83, p < 0.001$) y se puede apreciar claramente el impacto ($\eta^2_G = 0.0585$).
+
+Por lo tanto, se rechaza la hipótesis nula.
+
+## Análisis post-hoc
+
+Ahora se hará un análisis post-hoc para identificar "qué pares" de niveles difieren. Se usará la corrección de Bonferroni para comparaciones múltiples con muestras correlacionadas.
+
+```{r}
+modelo_aov <- aov(tiempo ~ dificultad + Error(id/dificultad), data = datos_comp)
+
+emm <- emmeans(modelo_aov, ~ dificultad)
+
+comparaciones <- pairs(emm, adjust = "bonferroni")
+print(comparaciones)
+
+print(summary(emm))
+```
+
+## Conclusión
+
+El análisis post-hoc con corrección de Bonferroni revela que la diferencia detectada por el ANOVA se debe principalmente al nivel de dificultad Alta, el cual requiere un tiempo de formulación significativamente mayor (92.8 s) en comparación con el nivel Bajo (89.7 s) y Medio (88.7 s), con un $p < 0.001$ en ambos casos.
+
+### spoiler para reutilizar 
+
+
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+# formato ancho
+datos_anchos <- datos_filtrados %>%
+  pivot_wider(names_from = pais, values_from = tiempo)
+# imprimir una parte de los datos con [0:5, ]
+# quiere decir las primeras 6 filas y todas sus columnas
+datos_anchos [0:5, ]
+
+formato largo
+
+
+# Formato Largo
+datos_largos <- datos_filtrados
+datos_largos$pais <- factor(datos_largos$pais)
+#imrpimimos una parte tambien con [0:5, ]
+datos_largos[0:5, ]
+

@@ -1,0 +1,254 @@
+---
+title: "EP08-respuesta-equipo-2"
+author: "---"
+output: html_document
+date: "2026-05-13"
+---
+
+```{r setup, include=FALSE}
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+knitr::opts_chunk$set(echo = TRUE)
+paquetes <- c("tidyr", "dplyr", "car", "ez", "emmeans", "ggpubr", "rstatix", "knitr", "MASS")
+install_if_missing <- function(p) {
+  if (!require(p, character.only = TRUE)) {
+    install.packages(p)
+    library(p, character.only = TRUE)
+  }
+}
+invisible(sapply(paquetes, install_if_missing))
+```
+
+# Enunciado
+
+**la Encuesta de Caracterización Socioeconómica Nacional (Casen) es realizada por el Ministerio de Desarrollo Social de forma periódica para conocer la situación de los hogares chilenos con relación a aspectos demográficos, de educación, salud, vivienda, trabajo e ingresos. Es la principal fuente de información para estimar la magnitud de la pobreza y la distribución del ingreso en el país. Se tiene a disposición un archivo CSV con un subconjunto de los datos obtenidos en la Casen 2017. El equipo debe revisar las columnas disponibles en este archivo según la descripción en el libro de códigos de la encuesta, que también queda disponible para este ejercicio. Es importante notar que en esta encuesta hay datos de carácter colectivo sobre “el hogar” del entrevistado, pero también hay datos de carácter individual, que se refieren “al jefe o la jefa de hogar” (no al entrevistado).**
+
+## Carga de datos
+
+```{r}
+datos <- read.csv("EP08 Datos CASEN 2017.csv", stringsAsFactors = TRUE)
+```
+
+# Pregunta 1
+**Propongan una pregunta de investigación original, que involucre la comparación de la frecuencia en que se observa un evento o característica en dos grupos independientes (más abajo se dan unos ejemplos). Fijando una semilla propia, seleccionen una muestra aleatoria de hogares (100 < n < 150) y respondan la pregunta propuesta utilizando una prueba de permutaciones Monte Carlo. Deben reportar un intervalo de confianza para el estadístico utilizado usando las mismas remuestras.**
+
+## Propuesta
+
+La frecuencia de hogares en la región de Valparaíso (`region`) que habitan en una vivienda en calidad de arriendo con contrato (variable `v13`) ¿presenta diferencias significativas dependiendo de si la jefatura del hogar recae en un hombre o en una mujer (variable `sexo`)?
+
+## Filtro de datos
+
+```{r}
+# Aplicamos filtros
+valpo <- datos %>% filter(region == "Región de Valparaíso") %>% dplyr::select(sexo, v13)
+valpo_arriendos <- valpo %>% filter(v13 == "Arrendada sin contrato" | v13 == "Arrendada con contrato")
+
+men <- valpo_arriendos %>% filter(sexo == "Hombre")
+women <- valpo_arriendos %>% filter(sexo == "Mujer")
+
+# Utilizamos una semilla
+set.seed(25)
+
+# Obtenemos muestra aleatoria de 125 observaciones
+muestra1 <- sample(men$v13, size = 125)
+muestra2 <- sample(women$v13, size = 125)
+```
+
+## Hipótesis
+
+Como `v13` es una variable categórica (arrendada con/sin contrato), el estadístico natural para comparar ambos grupos es la **diferencia de proporciones** de hogares "Arrendada con contrato".
+
+$H_0$: No existen diferencias significativas en la proporción de hogares arrendados con contrato entre jefaturas masculina y femenina en la Región de Valparaíso. Matemáticamente $p_{Hombres} = p_{Mujeres}$
+
+$H_A$: Sí existen diferencias significativas en la proporción de hogares arrendados con contrato entre jefaturas masculina y femenina en la Región de Valparaíso. Matemáticamente $p_{Hombres} \neq p_{Mujeres}$
+
+En este caso lidiamos con 2 muestras independientes tomadas de forma aleatoria, y con una variable de respuesta categórica, por lo que corresponde aplicar una **prueba de permutaciones Monte Carlo** sobre la diferencia de proporciones.
+
+## Verificación de condiciones
+
+### 1- Independencia de las muestras
+
+- Las observaciones dentro de cada grupo son independientes entre sí, ya que se obtuvieron mediante muestreo aleatorio.
+- Ambas muestras (125 hombres y 125 mujeres) representan menos del 10% de sus respectivas poblaciones (805 y 737 hogares en arriendo en Valparaíso), por lo que se puede asumir independencia entre observaciones.
+- Los grupos "hombre" y "mujer" corresponden a jefaturas de hogar distintas, por lo que son independientes entre sí.
+
+### 2- Normalidad
+
+No es necesario verificar el supuesto de normalidad, ya que la prueba de permutaciones Monte Carlo es un método no paramétrico: la distribución nula del estadístico se construye empíricamente mediante remuestreo, sin asumir ninguna distribución teórica de base. Esto la hace especialmente adecuada para variables categóricas como `v13`.
+
+## Prueba
+
+```{r}
+# Estadístico observado: diferencia de proporciones "Arrendada con contrato"
+prop_hombres <- mean(muestra1 == "Arrendada con contrato")
+prop_mujeres <- mean(muestra2 == "Arrendada con contrato")
+diff_obs <- prop_hombres - prop_mujeres
+diff_obs
+
+# --- Prueba de permutaciones Monte Carlo ---
+B <- 5000
+set.seed(345)
+pooled <- c(muestra1, muestra2)
+n1 <- length(muestra1)
+
+diffs_perm <- numeric(B)
+for (i in 1:B) {
+  perm <- sample(pooled)
+  p1 <- mean(perm[1:n1] == "Arrendada con contrato")
+  p2 <- mean(perm[(n1 + 1):(2 * n1)] == "Arrendada con contrato")
+  diffs_perm[i] <- p1 - p2
+}
+
+p_valor <- (sum(abs(diffs_perm) >= abs(diff_obs)) + 1) / (B + 1)
+p_valor
+
+# --- Intervalo de confianza (Usando el mismo número B de remuestras) ---
+# Se calculan los percentiles 2.5 y 97.5 sobre el vector diffs_perm
+ic_permutacion <- quantile(diffs_perm, probs = c(0.025, 0.975))
+ic_permutacion
+```
+
+## Conclusión
+
+Se observó una diferencia de proporciones de -0,112 entre hombres y mujeres jefes de hogar (es decir, la proporción de mujeres jefas de hogar que arrienda con contrato es mayor que la de los hombres), con un p-valor aproximado de 0,0598 obtenido mediante la prueba de permutaciones Monte Carlo. Dado que este valor es levemente superior al nivel de significación habitual de $0,05$, no se rechaza $H_0$ aunque el resultado se encuentra en el límite de la significación estadística.Esto es coherente con el intervalo generado por las remuestras de permutación, el cual establece que la región de no rechazo va desde -0,114 hasta 0,114. Como la diferencia observada (-0,112) cae dentro de este intervalo (aunque muy cerca de su límite inferior), corroboramos que la diferencia detectada en la muestra podría deberse al azar bajo la premisa de que no hay diferencias por sexo. En consecuencia, se concluye que no existe suficiente evidencia para afirmar con un 95% de confianza que la proporción de hogares arrendados con contrato difiera según el sexo de la jefatura de hogar en la Región de Valparaíso, aunque el resultado sugiere que podría existir una diferencia real que un estudio con mayor tamaño muestral podría confirmar.
+
+# Pregunta 2
+**Propongan una pregunta de investigación original, que involucre la comparación de las medias de más de dos grupos independientes (más abajo se dan unos ejemplos). Fijando una semilla distinta a la anterior, seleccionen una muestra aleatoria de hogares (200 < n < 300) y respondan la pregunta propuesta utilizando bootstrapping. Solo por ejercicio académico, aplique un análisis post-hoc con bootstrapping aunque este no fuera necesario. Indicación: consideren que el análisis post-hoc debe hacerse con las mismas remuestras usadas para la prueba ómnibus.**
+
+## Propuesta
+
+¿El promedio de horas trabajadas a la semana en el trabajo principal (`y2.hrs`) de los jefes y jefas de hogar difiere según su categoría en el empleo (`o15`), considerando a quienes trabajan como empleados del sector privado, empleados del sector público, empleados de empresas públicas o en servicio doméstico puertas afuera?
+
+## Filtro de datos
+
+```{r}
+categorias <- c("Empleado u obrero del sector privado",
+                 "Empleado u obrero del sector público (Gobierno Central o Mun",
+                 "Empleado u obrero de empresas públicas",
+                 "Servicio doméstico puertas afuera")
+
+datos_p2 <- datos %>%
+  filter(!is.na(y2.hrs), o15 %in% categorias) %>%
+  dplyr::select(o15, y2.hrs) %>%
+  droplevels()
+
+# Utilizamos una semilla distinta a la de la Pregunta 1
+set.seed(777)
+
+# Obtenemos una muestra aleatoria de 250 hogares (200 < n < 300)
+n_muestra <- 250
+muestra_p2 <- datos_p2 %>% dplyr::slice_sample(n = n_muestra)
+
+table(muestra_p2$o15)
+```
+
+## Hipótesis
+
+$H_0$: El promedio de horas trabajadas a la semana es igual entre las cuatro categorías de empleo. Matemáticamente $\mu_{privado} = \mu_{público} = \mu_{empresas\ públicas} = \mu_{serv.\ doméstico}$
+
+$H_A$: Al menos una de las categorías de empleo presenta un promedio de horas trabajadas a la semana distinto de las demás. Matemáticamente $\exists i, j \in \{\text{privado, público, empresas públicas, serv. doméstico}\}, i \neq j \mid \mu_i \neq \mu_j$
+
+## Verificación de condiciones
+
+### 1- Independencia de las muestras
+
+Las observaciones se obtuvieron mediante muestreo aleatorio simple desde una base de más de 30.000 hogares que cumplen el filtro, por lo que la muestra de 250 hogares representa menos del 10% de la población filtrada, y las observaciones entre grupos y dentro de cada grupo pueden considerarse independientes.
+
+### 2- Normalidad / uso de bootstrapping
+
+No es necesario verificar el supuesto de normalidad de las poblaciones de origen, ya que se utilizará **bootstrapping**, un método no paramétrico que no depende de este supuesto. Esto es especialmente conveniente aquí, dado que algunas categorías (empresas públicas, servicio doméstico) tienen menor representación en la muestra y su distribución podría no ser normal.
+
+## Prueba
+
+```{r}
+# --- Estadístico observado (F de un ANOVA de una vía) ---
+anova_obs <- aov(y2.hrs ~ o15, data = muestra_p2)
+F_obs <- summary(anova_obs)[[1]][["F value"]][1]
+F_obs
+
+# --- Preparamos los datos "centrados" para simular H0 ---
+# A cada grupo se le resta su propia media y se le suma la media global,
+# de manera que bajo esta transformación las 4 medias grupales son iguales (H0 verdadera).
+media_global <- mean(muestra_p2$y2.hrs)
+
+muestra_centrada <- muestra_p2 %>%
+  group_by(o15) %>%
+  mutate(y2.hrs_centrado = y2.hrs - mean(y2.hrs) + media_global) %>%
+  ungroup()
+
+# --- Bootstrapping para la prueba ómnibus ---
+B <- 3000
+set.seed(777)
+
+F_boot <- numeric(B)
+remuestras <- vector("list", B)  # guardamos las remuestras para el post-hoc
+
+for (i in 1:B) {
+  idx <- sample(1:nrow(muestra_centrada), replace = TRUE)
+  boot_data <- muestra_centrada[idx, ]
+  remuestras[[i]] <- boot_data
+  F_boot[i] <- summary(aov(y2.hrs_centrado ~ o15, data = boot_data))[[1]][["F value"]][1]
+}
+
+p_valor_omnibus <- mean(F_boot >= F_obs)
+p_valor_omnibus
+```
+
+### Análisis post-hoc con bootstrapping (usando las mismas remuestras)
+
+```{r}
+niveles <- levels(muestra_p2$o15)
+pares <- combn(niveles, 2, simplify = FALSE)
+
+resultados_posthoc <- data.frame(
+  par = character(), diff_obs = numeric(),
+  ci_lower = numeric(), ci_upper = numeric(), p_valor = numeric(),
+  stringsAsFactors = FALSE
+)
+
+for (par in pares) {
+  g1 <- par[1]; g2 <- par[2]
+
+  # Diferencia observada, calculada con los datos originales (sin centrar)
+  diff_obs_par <- mean(muestra_p2$y2.hrs[muestra_p2$o15 == g1]) -
+    mean(muestra_p2$y2.hrs[muestra_p2$o15 == g2])
+
+  # Reutilizamos las MISMAS remuestras generadas para la prueba ómnibus,
+  # pero usando la variable de horas SIN centrar (y2.hrs), para estimar
+  # la distribución de la diferencia real entre cada par de grupos.
+  diffs_boot_par <- sapply(remuestras, function(boot_data) {
+    m1 <- mean(boot_data$y2.hrs[boot_data$o15 == g1])
+    m2 <- mean(boot_data$y2.hrs[boot_data$o15 == g2])
+    m1 - m2
+  })
+
+  ci_par <- quantile(diffs_boot_par, c(0.025, 0.975), na.rm = TRUE)
+  p_par <- 2 * min(mean(diffs_boot_par <= 0, na.rm = TRUE),
+                    mean(diffs_boot_par >= 0, na.rm = TRUE))
+
+  resultados_posthoc <- rbind(resultados_posthoc, data.frame(
+    par = paste(g1, "vs", g2),
+    diff_obs = diff_obs_par,
+    ci_lower = unname(ci_par[1]),
+    ci_upper = unname(ci_par[2]),
+    p_valor = p_par
+  ))
+}
+
+# Corrección de Bonferroni por comparaciones múltiples
+resultados_posthoc$p_ajustado <- pmin(resultados_posthoc$p_valor * nrow(resultados_posthoc), 1)
+knitr::kable(resultados_posthoc, digits = 4)
+```
+
+## Conclusión
+
+El estadístico F observado para las cuatro categorías de empleo comparadas fue de 5,7003, con un p-valor de 0,0073 obtenido mediante la prueba ómnibus de bootstrapping. Como este valor es menor al nivel de significación de 0,05, se rechaza $H_0$ a favor de $H_A$: Existe evidencia estadísticamente significativa de que al menos una categoría de empleo presenta un promedio de horas trabajadas a la semana distinto de las demás.
+El análisis post-hoc con bootstrapping, realizado reutilizando las mismas remuestras generadas para la prueba ómnibus y corrigiendo por comparaciones múltiples mediante Bonferroni, muestra que las diferencias significativas se concentran específicamente en las comparaciones con la categoría servicio doméstico puertas afuera, que presenta un promedio de horas trabajadas considerablemente menor que el resto:
+
+$\bullet$ Empleado del sector privado vs. Servicio doméstico puertas afuera: diferencia de 43,73 horas (IC 95%: 17,78 a 71,62; p ajustado = 0,000) $\Rightarrow$ La diferencia es significativa.
+
+$\bullet$ Empleado de empresas públicas vs. Servicio doméstico puertas afuera: diferencia de 42,33 horas (IC 95%: 15,13 a 71,21; p ajustado = 0,004) $\Rightarrow$ La diferencia es significativa.
+
+$\bullet$ Empleado del sector público vs. Servicio doméstico puertas afuera: diferencia de 34,92 horas (IC 95%: 3,39 a 67,12; p ajustado = 0,160) $\Rightarrow$ La diferencia no es significativa una vez corregido por comparaciones múltiples, aunque el p-valor sin ajustar (0,0267) demostraba lo contrario.
+
+En contraste, las comparaciones entre las categorías de empleados (privado, público y empresas públicas) entre sí no muestran diferencias significativas: en todos esos pares el intervalo de confianza incluye el cero y el p-valor ajustado es 1,000 (empresas públicas vs. privado: diferencia de -1,40 horas; empresas públicas vs. público: 7,41 horas; privado vs. público: 8,81 horas).
+En síntesis, la diferencia global detectada por la prueba ómnibus se explica principalmente porque quienes trabajan en servicio doméstico puertas afuera reportan en promedio significativamente menos horas semanales de trabajo que quienes se desempeñan como empleados del sector privado o de empresas públicas, mientras que entre las demás categorías de empleo no se observan diferencias significativas en las horas trabajadas.

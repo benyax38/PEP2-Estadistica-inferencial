@@ -1,0 +1,123 @@
+---
+title: "pep2 ensayo"
+output: html_document
+date: "2026-08-11"
+---
+
+```{r setup, include=FALSE}
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+knitr::opts_chunk$set(echo = TRUE)
+paquetes <- c("dplyr", "car", "caret", "tidyverse")
+install_if_missing <- function(p) {
+  if (!require(p, character.only = TRUE)) {
+    install.packages(p)
+    library(p, character.only = TRUE)
+  }
+}
+invisible(sapply(paquetes, install_if_missing))
+```
+
+# Carga de datos
+
+```{r}
+datos <- read.csv("Forma 02.csv", stringsAsFactors = TRUE)
+datos$final <- as.factor(datos$final)
+```
+
+**Utilizando los datos provistos, construya un modelo de regresión logística para identificar la situación final de los estudiantes (respuesta), que tenga entre 3 y 8 variables predictoras y que consiga una exactitud (accuracy), en datos de prueba, superior a 0,70. Considere la semilla 415 para determinar los conjuntos de entrenamiento (80% de las observaciones) y prueba (20% de las observaciones). Verifique que el modelo no presenta multicolinealidad severa (usando el factor de inflación de la varianza).**
+
+# Construcción de modelo
+
+Se nos pide un modelo de Rlog con entre 3 y 8 variables predictoras para predecir la variable `final`, se nos pide determinar conjuntos que representen el 80% y el 20% de las observaciones..
+
+```{r}
+# Utilizamos la semilla dada por el enunciado
+set.seed(415)
+
+# Se pide obtener conjuntos que representen el 80% y %20 de las observaciones
+# createDataPartition asegura que la proporción de las clases se mantenga en ambos conjuntos
+proporcion <- createDataPartition(datos$final, p = 0.8, list = FALSE)
+
+# Obtenemos las muestras
+train <- datos[proporcion, ]
+test <- datos[-proporcion, ]
+```
+
+Con los conjuntos obtenidos, se seleccionaron las siguientee variables predicotras:
+1- `inasistencias`
+2- `colegio`
+3- `reprobaciones`
+4- `apoyo.alumno`
+5- `superior`
+
+Ahora procedemos a obtener el mejor modelo utilizando el método de selección por pasos (stepwise selection) con el criterio AIC utiliando la función setpAIC del paquete MASS
+
+```{r}
+# Modelo nulo (solo intercepto)
+modelo_nulo <- glm(final ~ 1, data = train, family = binomial)
+
+# Modelo completo (las 8 variables)
+modelo_completo <- glm(final ~ inasistencias + colegio + reprobaciones + 
+                         apoyo.alumno + superior, 
+                       data = train, family = binomial)
+summary(modelo_completo)
+```
+
+El modelo completo presenta una caída considerable en la desviación residual de 379.77 a 318.38
+
+```{r vif}
+# Verificación de multicolinealidad
+vif(modelo_completo)
+```
+
+Observamos que en la columna de  ${GVIF}^{\frac{1}{2DF}}$ los valores se encuentran entre 1 y 1.5, lo que indica que no hay multicolinealidad severa entre las variables predictoras seleccionadas. Esto sugiere que las variables elegidas son adecuadas para el modelo y no presentan redundancia significativa. Ahora procedemos a evaluar el desempeño del modelo en el conjunto de prueba, calculando la exactitud (accuracy) y otras métricas relevantes.
+
+```{r}
+# Generar probabilidades predichas en el conjunto de test
+prob_predichas <- predict(modelo_completo, newdata = test, type = "response")
+
+# Convertir probabilidades en clases (Umbral = 0.5)
+clase_predicha <- factor(ifelse(prob_predichas > 0.5, "R", "A"), levels = levels(test$final))
+
+# Matriz de Confusión y Métricas de Rendimiento
+matriz_confusion <- confusionMatrix(clase_predicha, test$final, positive = "A")
+
+# Mostrar resultado completo
+print(matriz_confusion)
+
+# Extraer y mostrar el Accuracy específico
+accuracy <- matriz_confusion$overall["Accuracy"]
+cat("El Accuracy en el conjunto de prueba es:", round(accuracy, 4), "\n")
+```
+Observamos que el Accuracy obtenido es de 0.7681 superando el umbrar dado por el enunciado, ahora procedemos a realizar la selección de variables utilizando el método stepwise con el criterio AIC para obtener un modelo más parsimonioso.
+
+```{r}
+# Aplicar selección de variables stepwise
+modelo_nulo <- glm(final ~ 1, data = train, family = binomial)
+modelo_step <- stepAIC(modelo_nulo, scope = list(lower = modelo_nulo, upper = modelo_completo), direction = "both", trace = FALSE)
+
+summary(modelo_step)
+```
+Observamos que este nuevo modelo mantiene los 5 predictores seleccionados inicialmente, lo que indica que son relevantes para la predicción de la variable final. Ahora, como seguimos utilizando el mismo modelo, yá sabemos que este nó presenta multicolinealidad severa, por lo que procedemos a verificar las demás condiciones del modelo como la relación lineal entre los predictores continuos y el logit de la respuesta, información suficiente (ausencia de separación perfecta o cuasi-perfecta) y casos influyentes.
+
+```{r}
+# Prueba de Box-Tidwell: solo aplica a predictores numéricos y estrictamente
+# La respuesta se codifica como 1/2 porque boxTidwell() no admite ceros.
+train$final <- as.numeric(train$final)
+
+boxTidwell(final ~ reprobaciones + inasistencias, data = train)
+```
+
+
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```

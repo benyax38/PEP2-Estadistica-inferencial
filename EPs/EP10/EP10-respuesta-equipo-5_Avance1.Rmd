@@ -1,0 +1,151 @@
+---
+title: "EP10-respuesta-equipo-5"
+author: ""
+output: html_document
+date: "2026-08-05"
+---
+
+```{r setup, include=FALSE}
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+knitr::opts_chunk$set(echo = TRUE)
+paquetes <- c("dplyr", "car", "knitr")
+install_if_missing <- function(p) {
+  if (!require(p, character.only = TRUE)) {
+    install.packages(p)
+    library(p, character.only = TRUE)
+  }
+}
+invisible(sapply(paquetes, install_if_missing))
+```
+
+# Enunciado
+
+**Para este ejercicio usaremos los datos de medidas anatómicas recolectados por Heinz et al. (2003) que ya conocimos en el ejercicio práctico anterior (disponibles en el archivo "EP09 Datos.csv"). Como en este case se requiere de una variable dicotómica, vamos a realizar lo siguiente:**
+**1- El equipo crea la variable IMC (índice de masa corporal) como el peso de una persona (en kilogramos) dividida por el cuadrado de su estatura (en metros).**
+**2- Si bien esta variable se usa para clasificar a las personas en varias clases de estado nutricional (bajo peso, normal, sobrepeso, obesidad, obesidad mórbida), para efectos de este ejercicio, usaremos dos clases: sobrepeso (IMC ≥ 23,2) y no sobrepeso (IMC < 23,2).**
+**3- El equipo crea la variable dicotómica EN (estado nutricional) de acuerdo al valor de IMC de cada persona.**
+
+## Carga de datos e integración de nuevas variables
+
+```{r}
+# Cargamos los el mismo dataframe del EP anterior
+data <- read.csv2("EP09 Datos.csv", stringsAsFactors = TRUE)
+
+# Agregamos una nueva comlumna llamada IMC, siendo una variable continua
+# Ojo que la variable Height está medido en cm, así que tenemos que pasarlo a metros
+data$IMC <- data$Weight / ((data$Height/100)**2)
+
+# Ahora agregamos la variable dicotómica EN donde su valores son "sobrepeso" y "no sobrepeso"
+data$EN <- ifelse(data$IMC >= 23.2, "sobrepeso", "no sobrepeso")
+```
+
+**Ahora podemos construir un modelo de regresión logística para predecir la variable EN, de acuerdo con las siguientes instrucciones:**
+
+# Instrucción 1
+
+**Asegurando reproducibilidad, seleccionar una muestra de 150 mujeres (si su n° de equipo es un número par) o 150 hombres (si su n° de equipo es impar), asegurando que la mitad tenga estado nutricional “sobrepeso” y la otra mitad “no sobrepeso” en cada caso. Dividir esta muestra en dos conjuntos: los datos de 100 personas (50 con EN “sobrepeso”) para utilizar en la construcción de los modelos y 50 personas (25 con EN “sobrepeso”) para poder evaluarlos.**
+
+Nuestro número de equipo es el 5, por lo tanto, se selecciona una muestra de 150 mujeres
+
+```{r}
+# Utilizamos la misma semilla
+set.seed(1368)
+
+# Filtramos los datos por mujeres (Gender == 0)
+mujeres <- data %>% filter(Gender == 0)
+
+# Dividimos los datos en dos grupos respecto a la variable EN
+gordas <- data %>% filter(EN == "sobrepeso")
+noGordas <- data %>% filter(EN == "no sobrepeso")
+
+# Nos piden seleccionar 150 mujeres, por lo que procedemos a seleccionar 75 de cada grupo
+muestra_gordas <- gordas %>% slice_sample(n = 75)
+muestra_noGordas <- noGordas %>% slice_sample(n = 75)
+
+# Unimos ambas muestras en una
+muestra <- rbind(muestra_gordas, muestra_noGordas)
+
+# 100 casos (50 con EN “sobrepeso”) para construir los modelos y 50 casos (25 con EN “sobrepeso”) para evaluarlos en datos no vistos
+casos_gordas <- muestra_gordas %>% slice_sample(n = 50)
+casos_noGordas <- muestra_noGordas %>% slice_sample(n = 50)
+gordas_no_vistas <- muestra_gordas %>% anti_join(casos_gordas)
+noGordas_no_vistas <- muestra_noGordas %>% anti_join(casos_noGordas)
+casos <- rbind(casos_gordas, casos_noGordas)
+no_vistos <- rbind(gordas_no_vistas, noGordas_no_vistas)
+```
+
+# Instrucción 2
+
+**Recordar las ocho posibles variables predictoras seleccionadas de forma aleatoria en el ejercicio anterior.**
+
+Se recuerda que las variables predictoraS seleccionadas aleatoriamente en el ejercicio anterior fueron las siguientes:
+
+```{r, include=FALSE}
+variables_seleccionadas <- c("Ankle.Minimum.Girth", 
+                             "Bitrochanteric.diameter", 
+                             "Age", 
+                             "Wrist.Minimum.Girth", 
+                             "Hip.Girth", 
+                             "Calf.Maximum.Girth", 
+                             "Knee.Girth", 
+                             "Thigh.Girth")
+
+knitr::kable(data.frame(Variable = variables_seleccionadas),
+             caption = "Variables seleccionadas aleatoriamente en el ejercicio anterior")
+```
+
+# Instrucción 3
+
+**Seleccionar, de las otras variables, una que el equipo considere que podría ser útil para predecir la clase EN, justificando bien esta selección (idealmente con literatura).**
+
+```{r}
+
+```
+
+# Instrucción 4
+
+**Usando el entorno R, construir un modelo de regresión logística con el predictor seleccionado en el paso anterior y utilizando de la muestra obtenida.**
+
+```{r}
+
+```
+
+# Instrucción 5
+
+**Usando herramientas estándares para la exploración de modelos del entorno R, buscar entre dos y cinco predictores de entre las variables seleccionadas al azar, recordadas en el punto 2, para agregar al modelo obtenido en el paso 4.**
+
+```{r}
+
+```
+
+# Instrucción 6
+
+**Evaluar la confiabilidad y generalidad de los modelos (i.e. que tengan un buen nivel de ajuste, que cumplen las condiciones para RLogit y no están dominados por casos sobreinfluyentes) y “arreglarlos” en caso de que tengan algún problema.**
+
+```{r}
+
+```
+
+# Instrucción 7
+
+**Usando código estándar, evaluar el poder predictivo de los modelos con los datos de las 50 personas que no se incluyeron en su construcción en términos de sensibilidad y especificidad.**
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
